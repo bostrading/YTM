@@ -158,10 +158,15 @@ export default function App() {
         .catch((error) => alert(error.message || "Browser akun gagal dibuka."));
     }
     if (supabase && session?.user) {
-      await supabase.from("yt_accounts").update({ last_used_at: new Date().toISOString() }).eq("id", account.id);
+      if (isDesktop) {
+        await supabase.from("yt_accounts").update({ last_used_at: new Date().toISOString() }).eq("id", account.id);
+      }
       await supabase.from("yt_activity_logs").insert({
         user_id: session.user.id, account_id: account.id,
-        event_type: "browser_opened", description: `Browser dibuka: ${account.display_name}`
+        event_type: isDesktop ? "browser_opened" : "account_selected",
+        description: isDesktop
+          ? `Browser dibuka: ${account.display_name}`
+          : `Akun dipilih di dashboard web: ${account.display_name}`
       });
     }
   }
@@ -227,7 +232,28 @@ export default function App() {
           {isDesktop ? <><button className="browser-control" onClick={() => window.ytm.browserBack()}><ArrowLeft size={18}/></button><button className="browser-control" onClick={() => window.ytm.browserForward()}><ArrowRight size={18}/></button><button className="browser-control" onClick={() => window.ytm.browserReload()}><RefreshCw size={18}/></button><form className="address-bar" onSubmit={(e) => { e.preventDefault(); navigate(); }}><span>🔒</span><input value={address} onChange={(e) => setAddress(e.target.value)} /></form><div className="active-session"><i/>{selected ? `Sesi: ${selected.display_name}` : "Belum ada sesi"}</div><button className="browser-control login-test-button" disabled={!selected || loginChecking || browserState.loading} onClick={testProfileLogin} title="Uji status login YouTube">{loginChecking ? "Menguji..." : "Uji Login"}</button></> : <div className="active-session">Mode web · browser YouTube tersedia di aplikasi Windows</div>}
         </div>
         <div className="browser-viewport" ref={browserPaneRef}>
-          {!isDesktop ? <div className="browser-empty"><Globe size={38}/><h2>Dashboard web aktif</h2><p>Kelola daftar akun dan riwayat melalui web. Browser YouTube, login, serta isolasi sesi tersedia di aplikasi Windows.</p></div> : <>{!selected && <div className="browser-empty"><Globe size={38}/><h2>Pilih akun YouTube</h2><p>Setiap akun memiliki sesi browser yang terpisah.</p></div>}{browserState.loading && <div className="loading-line"/>}</>}
+          {!isDesktop ? (
+            <div className="web-account-detail">
+              {selected ? (
+                <>
+                  <div className="web-detail-heading">
+                    <div className="avatar web-detail-avatar">{initials(selected.display_name)}</div>
+                    <div><span className="web-detail-eyebrow">AKUN TERPILIH</span><h2>{selected.display_name}</h2><p>{selected.email || "Email belum diisi"}</p></div>
+                  </div>
+                  <div className="web-detail-grid">
+                    <div><span>Status terakhir</span><strong>{selected.account_status === "logged_in" ? "Login terverifikasi" : selected.account_status === "logged_out" ? "Logout" : "Belum diuji"}</strong></div>
+                    <div><span>Ditambahkan</span><strong>{selected.created_at ? new Date(selected.created_at).toLocaleString("id-ID") : "—"}</strong></div>
+                  </div>
+                  <div className="web-browser-notice">
+                    <Globe size={20}/>
+                    <div><strong>Browser YouTube tidak tersedia di website</strong><p>Pemilihan akun berhasil. Untuk membuka YouTube dan login menggunakan sesi profil ini, jalankan aplikasi YT Manager di Windows lalu pilih akun yang sama.</p></div>
+                  </div>
+                </>
+              ) : (
+                <div className="web-detail-empty"><Users size={34}/><h2>Pilih akun dari daftar</h2><p>Klik salah satu akun di panel kiri untuk melihat detail dan statusnya di sini.</p></div>
+              )}
+            </div>
+          ) : <>{!selected && <div className="browser-empty"><Globe size={38}/><h2>Pilih akun YouTube</h2><p>Setiap akun memiliki sesi browser yang terpisah.</p></div>}{browserState.loading && <div className="loading-line"/>}</>}
         </div>
       </main>
       {showAdd && <div className="modal-backdrop" onClick={() => setShowAdd(false)}><form className="modal" onSubmit={addAccount} onClick={(e) => e.stopPropagation()}>
