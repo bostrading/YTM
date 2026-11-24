@@ -210,7 +210,7 @@ export default function App() {
             <button key={label} className={page === label ? "nav-item active" : "nav-item"} onClick={() => setPage(label)}><Icon size={19}/>{label}</button>
           )}
         </nav>
-        <div className="side-stats"><div><Users size={18}/><span>Total Akun</span></div><b>{accounts.length}</b><div className="browser-stat"><CheckCircle2 size={18}/><span>Browser Aktif</span></div><b>{selected ? "1 / 1" : "0 / 1"}</b></div>
+        <div className="side-stats"><div><Users size={18}/><span>Total Akun</span></div><b>{accounts.length}</b><div className="browser-stat"><CheckCircle2 size={18}/><span>{isDesktop ? "Browser Aktif" : "Akun Dipilih"}</span></div><b>{isDesktop ? (selected ? "1 / 1" : "0 / 1") : (selected ? "1" : "0")}</b></div>
         <button className="logout-button" onClick={logout}><LogOut size={16}/>Keluar</button>
       </aside>
       <section className="account-panel">
@@ -229,7 +229,7 @@ export default function App() {
       <main className="browser-panel">
         <div className="browser-toolbar">
           <div className="browser-title"><Globe size={18}/>{isDesktop ? "Browser" : "Web Dashboard"}</div>
-          {isDesktop ? <><button className="browser-control" onClick={() => window.ytm.browserBack()}><ArrowLeft size={18}/></button><button className="browser-control" onClick={() => window.ytm.browserForward()}><ArrowRight size={18}/></button><button className="browser-control" onClick={() => window.ytm.browserReload()}><RefreshCw size={18}/></button><form className="address-bar" onSubmit={(e) => { e.preventDefault(); navigate(); }}><span>🔒</span><input value={address} onChange={(e) => setAddress(e.target.value)} /></form><div className="active-session"><i/>{selected ? `Sesi: ${selected.display_name}` : "Belum ada sesi"}</div><button className="browser-control login-test-button" disabled={!selected || loginChecking || browserState.loading} onClick={testProfileLogin} title="Uji status login YouTube">{loginChecking ? "Menguji..." : "Uji Login"}</button></> : <div className="active-session">Mode web · browser YouTube tersedia di aplikasi Windows</div>}
+          {isDesktop ? <><button className="browser-control" onClick={() => window.ytm.browserBack()}><ArrowLeft size={18}/></button><button className="browser-control" onClick={() => window.ytm.browserForward()}><ArrowRight size={18}/></button><button className="browser-control" onClick={() => window.ytm.browserReload()}><RefreshCw size={18}/></button><form className="address-bar" onSubmit={(e) => { e.preventDefault(); navigate(); }}><span>🔒</span><input value={address} onChange={(e) => setAddress(e.target.value)} /></form><div className="active-session"><i/>{selected ? `Sesi: ${selected.display_name}` : "Belum ada sesi"}</div><button className="browser-control login-test-button" disabled={!selected || loginChecking || browserState.loading} onClick={testProfileLogin} title="Uji status login YouTube">{loginChecking ? "Menguji..." : "Uji Login"}</button></> : <div className="active-session">Mode web · login YouTube hanya di aplikasi Windows</div>}
         </div>
         <div className="browser-viewport" ref={browserPaneRef}>
           {!isDesktop ? (
