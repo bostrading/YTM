@@ -17,7 +17,6 @@ function initials(name = "YT") {
 
 export default function App() {
   const [session, setSession] = useState(null);
-  const [authMode, setAuthMode] = useState("login");
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authError, setAuthError] = useState("");
@@ -99,10 +98,10 @@ export default function App() {
   async function authenticate(e) {
     e.preventDefault(); setAuthError("");
     if (!supabase) { setAuthError("Konfigurasi Supabase belum diisi di file .env."); return; }
-    const action = authMode === "login"
-      ? supabase.auth.signInWithPassword({ email: authEmail, password: authPassword })
-      : supabase.auth.signUp({ email: authEmail, password: authPassword });
-    const { error } = await action;
+    const { error } = await supabase.auth.signInWithPassword({
+      email: authEmail,
+      password: authPassword
+    });
     if (error) setAuthError(error.message);
   }
 
@@ -175,10 +174,7 @@ export default function App() {
         <label>Email</label><input type="email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} required />
         <label>Password</label><input type="password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} minLength={6} required />
         {authError && <div className="error">{authError}</div>}
-        <button className="primary full" type="submit">{authMode === "login" ? "Login" : "Buat Akun"}</button>
-        <button className="link-button" type="button" onClick={() => setAuthMode(authMode === "login" ? "signup" : "login")}>
-          {authMode === "login" ? "Belum punya akun? Daftar" : "Sudah punya akun? Login"}
-        </button>
+        <button className="primary full" type="submit">Login</button>
       </form>
     </div>
   );
