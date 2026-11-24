@@ -54,3 +54,18 @@ Artifact disimpan selama 14 hari. Installer belum ditandatangani sertifikat code
 8. Tambahkan akun lain untuk membuat profil browser lokal baru. Gunakan menu akun untuk berpindah profil.
 
 Data profil browser disimpan lokal di komputer Windows. Backup folder data aplikasi sebelum memindahkan instalasi atau mengganti komputer. Jangan bagikan folder profil karena dapat berisi sesi login.
+
+## Deploy web dashboard to Cloudflare Pages
+
+YT Manager can also run as a web dashboard. The web version supports Supabase authentication, account labels, account list management, and activity history. The integrated YouTube browser, per-profile Chromium sessions, and YouTube login verification remain desktop-only Electron features.
+
+Create a Cloudflare Pages project:
+1. In Cloudflare Dashboard, open **Workers & Pages** → **Create application** → **Pages** → **Connect to Git**.
+2. Select GitHub repository `bostrading/YTM` and production branch `main`.
+3. Set framework preset to **Vite** (or **None**), root directory to `/`, build command to `npm run build`, and build output directory to `dist`.
+4. Add production environment variables:
+   - `VITE_SUPABASE_URL` = `https://ciwghxpgvkdsszqezmbr.supabase.co`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY` = the Supabase publishable key from the project's API settings.
+5. Save and deploy. Future pushes to `main` will trigger Pages deployments automatically.
+
+Do not use a Supabase `service_role` or secret key in Pages environment variables. Keep the Windows installer workflow separate; it continues to package the Electron desktop app.
