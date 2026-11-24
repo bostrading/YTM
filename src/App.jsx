@@ -111,7 +111,7 @@ export default function App() {
       .from("yt_accounts").select("display_name").order("created_at", { ascending: true });
     if (listError) { alert(listError.message); return; }
     const highestNumber = (existing || []).reduce((highest, account) => {
-      const match = String(account.display_name || "").match(/(\\d+)\\s*$/);
+      const match = String(account.display_name || "").match(/(\d+)\s*$/);
       return match ? Math.max(highest, Number(match[1])) : highest;
     }, 0);
     const accountName = `Account ${String(Math.max(highestNumber, (existing || []).length) + 1).padStart(4, "0")}`;
@@ -226,7 +226,7 @@ export default function App() {
       </main>
       {showAdd && <div className="modal-backdrop" onClick={() => setShowAdd(false)}><form className="modal" onSubmit={addAccount} onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" type="button" onClick={() => setShowAdd(false)}><X size={18}/></button><h2>Tambah Akun YouTube</h2><p>{isDesktop ? "Data ini memberi label pada profil browser baru. Login Google dilakukan langsung di browser YouTube." : "Data akun disimpan di dashboard. Sesi browser YouTube terpisah dibuat melalui aplikasi Windows."}</p>
-        <label>Nama akun</label><div className="auto-name-preview">Account {String(Math.max(accounts.reduce((highest, account) => { const match = String(account.display_name || "").match(/(\\d+)\\s*$/); return match ? Math.max(highest, Number(match[1])) : highest; }, 0), accounts.length) + 1).padStart(4, "0")}</div><small>Nomor akun dibuat otomatis dan berurutan.</small>
+        <label>Nama akun</label><div className="auto-name-preview">Account {String(Math.max(accounts.reduce((highest, account) => { const match = String(account.display_name || "").match(/(\d+)\s*$/); return match ? Math.max(highest, Number(match[1])) : highest; }, 0), accounts.length) + 1).padStart(4, "0")}</div><small>Nomor akun dibuat otomatis dan berurutan.</small>
         <label>Email (opsional)</label><input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="akun@gmail.com"/>
         <button className="primary full" type="submit">Buat Profil Browser</button>
       </form></div>}
