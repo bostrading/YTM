@@ -69,7 +69,12 @@ export default function App() {
     const updateBounds = () => {
       const el = browserPaneRef.current;
       if (!el || !window.ytm) return;
-      if (page !== "Dashboard") { window.ytm.hideBrowser(); return; }
+      // Electron WebContentsView is a native view and is rendered above the
+      // React DOM. Hide it while React dialogs are open so dialogs remain usable.
+      if (page !== "Dashboard" || showAdd) {
+        window.ytm.hideBrowser();
+        return;
+      }
       const r = el.getBoundingClientRect();
       window.ytm.setBrowserBounds({ x: r.left, y: r.top, width: r.width, height: r.height });
     };
@@ -78,7 +83,7 @@ export default function App() {
     const observer = new ResizeObserver(updateBounds);
     if (browserPaneRef.current) observer.observe(browserPaneRef.current);
     return () => { clearTimeout(timer); window.removeEventListener("resize", updateBounds); observer.disconnect(); };
-  }, [page, selected]);
+  }, [page, selected, showAdd]);
 
   useEffect(() => {
     if (!window.ytm) return;
