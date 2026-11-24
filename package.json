@@ -8,7 +8,7 @@
     "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron .\"",
     "build": "vite build",
     "start": "electron .",
-    "dist": "npm run build && electron-builder"
+    "dist": "npm run build && electron-builder --win nsis --publish never"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.57.4",
@@ -27,8 +27,18 @@
   "build": {
     "appId": "com.bostrading.ytmanager",
     "productName": "YT Manager",
-    "directories": { "output": "release" },
-    "files": ["dist/**/*", "electron/**/*", "package.json"],
-    "win": { "target": ["nsis"] }
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    }
   }
 }
