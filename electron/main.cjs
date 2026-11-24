@@ -126,8 +126,8 @@ ipcMain.handle("browser:check-youtube-login", async (_event, profileId) => {
     throw new Error("Buka youtube.com pada profil ini sebelum menguji login.");
   }
   const result = await wc.executeJavaScript(`(() => {
-    const avatar = document.querySelector("#avatar-btn, ytd-masthead #avatar, button[aria-label*="Account"], button[aria-label*="akun" i]");
-    const signIn = document.querySelector('a[href*="ServiceLogin"], ytd-button-renderer a[href*="accounts.google.com/ServiceLogin"]');
+    const avatar = document.querySelector('#avatar-btn, ytd-masthead #avatar, button[aria-label*="Account"], button[aria-label*="akun" i]');
+    const signIn = document.querySelector('a[href*="ServiceLogin"], ytd-button-renderer a[href*="accounts.google.com/ServiceLogin"], a[aria-label*="Sign in" i]');
     const accountLabel = avatar?.getAttribute("aria-label") || avatar?.getAttribute("title") || "";
     return { signedIn: Boolean(avatar && !signIn), accountLabel, title: document.title, url: location.href };
   })()`);
