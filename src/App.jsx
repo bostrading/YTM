@@ -9,6 +9,7 @@ import {
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://ciwghxpgvkdsszqezmbr.supabase.co";
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_8o52lNy0iHby8vSIq-i1EA_Ef1y_k43";
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+const isDesktop = typeof window !== "undefined" && Boolean(window.ytm);
 
 function initials(name = "YT") {
   return name.trim().split(/\s+/).slice(0, 2).map((v) => v[0]?.toUpperCase()).join("") || "YT";
@@ -124,7 +125,7 @@ export default function App() {
   }
 
   async function testProfileLogin() {
-    if (!selected || !window.ytm) return;
+    if (!selected || !isDesktop) return;
     setLoginChecking(true);
     try {
       const result = await window.ytm.checkYoutubeLogin(selected.browser_profile_id);
@@ -140,7 +141,7 @@ export default function App() {
   }
 
   async function openAccount(account) {
-    if (!account || !window.ytm) return;
+    if (!account) return;
     setSelected(account);
     setPage("Dashboard");
     // Browser profile is activated by the page/selection effect.
@@ -187,7 +188,7 @@ export default function App() {
       <header className="topbar">
         <div className="brand"><div className="brand-mark">▶</div><div><strong>YT Manager</strong><span>Multi Account Dashboard</span></div></div>
         <div className="system-status"><i />System Online</div>
-        <button className="icon-button" title="Minimize">—</button><button className="icon-button" title="Maximize">□</button><button className="icon-button" title="Close">×</button>
+        {isDesktop && <><button className="icon-button" title="Minimize">—</button><button className="icon-button" title="Maximize">□</button><button className="icon-button" title="Close">×</button></>}
       </header>
       <aside className="sidebar">
         <nav>
@@ -213,21 +214,15 @@ export default function App() {
       </section>
       <main className="browser-panel">
         <div className="browser-toolbar">
-          <div className="browser-title"><Globe size={18}/>Browser</div>
-          <button className="browser-control" onClick={() => window.ytm?.browserBack()}><ArrowLeft size={18}/></button>
-          <button className="browser-control" onClick={() => window.ytm?.browserForward()}><ArrowRight size={18}/></button>
-          <button className="browser-control" onClick={() => window.ytm?.browserReload()}><RefreshCw size={18}/></button>
-          <form className="address-bar" onSubmit={(e) => { e.preventDefault(); navigate(); }}><span>🔒</span><input value={address} onChange={(e) => setAddress(e.target.value)} /></form>
-          <div className="active-session"><i/>{selected ? `Sesi: ${selected.display_name}` : "Belum ada sesi"}</div>
-          <button className="browser-control login-test-button" disabled={!selected || loginChecking || browserState.loading} onClick={testProfileLogin} title="Uji status login YouTube">{loginChecking ? "Menguji..." : "Uji Login"}</button>
+          <div className="browser-title"><Globe size={18}/>{isDesktop ? "Browser" : "Web Dashboard"}</div>
+          {isDesktop ? <><button className="browser-control" onClick={() => window.ytm.browserBack()}><ArrowLeft size={18}/></button><button className="browser-control" onClick={() => window.ytm.browserForward()}><ArrowRight size={18}/></button><button className="browser-control" onClick={() => window.ytm.browserReload()}><RefreshCw size={18}/></button><form className="address-bar" onSubmit={(e) => { e.preventDefault(); navigate(); }}><span>🔒</span><input value={address} onChange={(e) => setAddress(e.target.value)} /></form><div className="active-session"><i/>{selected ? `Sesi: ${selected.display_name}` : "Belum ada sesi"}</div><button className="browser-control login-test-button" disabled={!selected || loginChecking || browserState.loading} onClick={testProfileLogin} title="Uji status login YouTube">{loginChecking ? "Menguji..." : "Uji Login"}</button></> : <div className="active-session">Mode web · browser YouTube tersedia di aplikasi Windows</div>}
         </div>
         <div className="browser-viewport" ref={browserPaneRef}>
-          {!selected && <div className="browser-empty"><Globe size={38}/><h2>Pilih akun YouTube</h2><p>Setiap akun memiliki sesi browser yang terpisah.</p></div>}
-          {browserState.loading && <div className="loading-line"/>}
+          {!isDesktop ? <div className="browser-empty"><Globe size={38}/><h2>Dashboard web aktif</h2><p>Kelola daftar akun dan riwayat melalui web. Browser YouTube, login, serta isolasi sesi tersedia di aplikasi Windows.</p></div> : <>{!selected && <div className="browser-empty"><Globe size={38}/><h2>Pilih akun YouTube</h2><p>Setiap akun memiliki sesi browser yang terpisah.</p></div>}{browserState.loading && <div className="loading-line"/>}</>}
         </div>
       </main>
       {showAdd && <div className="modal-backdrop" onClick={() => setShowAdd(false)}><form className="modal" onSubmit={addAccount} onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" type="button" onClick={() => setShowAdd(false)}><X size={18}/></button><h2>Tambah Akun YouTube</h2><p>Data ini hanya memberi label pada profil browser baru. Login Google dilakukan langsung di browser YouTube.</p>
+        <button className="modal-close" type="button" onClick={() => setShowAdd(false)}><X size={18}/></button><h2>Tambah Akun YouTube</h2><p>{isDesktop ? "Data ini memberi label pada profil browser baru. Login Google dilakukan langsung di browser YouTube." : "Data akun disimpan di dashboard. Sesi browser YouTube terpisah dibuat melalui aplikasi Windows."}</p>
         <label>Nama akun</label><input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="YouTube Account 001" required/>
         <label>Email (opsional)</label><input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="akun@gmail.com"/>
         <button className="primary full" type="submit">Buat Profil Browser</button>
