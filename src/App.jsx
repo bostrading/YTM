@@ -148,9 +148,15 @@ export default function App() {
 
   async function openAccount(account) {
     if (!account) return;
+    const alreadyActiveOnDashboard = selected?.id === account.id && page === "Dashboard";
     setSelected(account);
     setPage("Dashboard");
-    // Browser profile is activated by the page/selection effect.
+    // Re-open explicitly when the selected row is clicked again. The selection
+    // effect does not run when React receives the same selected account twice.
+    if (alreadyActiveOnDashboard && isDesktop && account.browser_profile_id) {
+      window.ytm.openAccountBrowser(account.browser_profile_id, "https://www.youtube.com")
+        .catch((error) => alert(error.message || "Browser akun gagal dibuka."));
+    }
     if (supabase && session?.user) {
       await supabase.from("yt_accounts").update({ last_used_at: new Date().toISOString() }).eq("id", account.id);
       await supabase.from("yt_activity_logs").insert({
