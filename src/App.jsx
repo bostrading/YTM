@@ -28,6 +28,8 @@ export default function App() {
   const [showAdd, setShowAdd] = useState(false);
   const [page, setPage] = useState("Dashboard");
   const [browserState, setBrowserState] = useState({ url: "https://www.youtube.com", loading: false });
+  const [loginChecking, setLoginChecking] = useState(false);
+  const [loginResults, setLoginResults] = useState({});
   const [activityLogs, setActivityLogs] = useState([]);
   const [address, setAddress] = useState("https://www.youtube.com");
   const browserPaneRef = useRef(null);
@@ -121,7 +123,7 @@ export default function App() {
     openAccount(data);
   }
 
-  async function openAccount(account) {
+  async function testProfileLogin() {\n    if (!selected || !window.ytm) return;\n    setLoginChecking(true);\n    try {\n      const result = await window.ytm.checkYoutubeLogin(selected.browser_profile_id);\n      const status = result.signedIn ? "logged_in" : "not_logged_in";\n      setLoginResults((prev) => ({ ...prev, [selected.id]: { status, accountLabel: result.accountLabel || "", checkedAt: result.checkedAt } }));\n      const { error } = await supabase.from("yt_accounts").update({ account_status: status }).eq("id", selected.id);\n      if (error) throw error;\n      setAccounts((prev) => prev.map((a) => a.id === selected.id ? { ...a, account_status: status } : a));\n      await supabase.from("yt_activity_logs").insert({ user_id: session.user.id, account_id: selected.id, event_type: "login_test", description: result.signedIn ? `Login YouTube terverifikasi${result.accountLabel ? `: ${result.accountLabel}` : ""}` : "Belum login ke YouTube" });\n    } catch (error) {\n      alert(error.message || "Pemeriksaan login gagal.");\n    } finally { setLoginChecking(false); }\n  }\n\n  async function openAccount(account) {
     if (!account || !window.ytm) return;
     setSelected(account);
     setPage("Dashboard");
@@ -186,7 +188,7 @@ export default function App() {
         <div className="account-list">
           {filteredAccounts.map((account) => <div key={account.id} className={selected?.id === account.id ? "account-item selected" : "account-item"} onClick={() => openAccount(account)}>
             <div className="avatar">{initials(account.display_name)}</div><div className="account-meta"><strong>{account.display_name}</strong><span>{account.email || "Email belum diisi"}</span></div>
-            <span className={account.account_status === "logged_in" ? "login-status logged-in" : "login-status"}><i/>{account.account_status === "logged_in" ? "Login" : "Profil"}</span><button className="more-button" onClick={(e) => { e.stopPropagation(); removeAccount(account); }} title="Hapus">⋮</button>
+            <span className={account.account_status === "logged_in" ? "login-status logged-in" : "login-status"}><i/>{account.account_status === "logged_in" ? "Login terverifikasi" : "Belum diuji / logout"}</span><button className="more-button" onClick={(e) => { e.stopPropagation(); removeAccount(account); }} title="Hapus">⋮</button>
           </div>)}
           {!filteredAccounts.length && <div className="empty-state">Belum ada akun. Tambahkan akun YouTube untuk memulai.</div>}
         </div>
@@ -200,7 +202,7 @@ export default function App() {
           <button className="browser-control" onClick={() => window.ytm?.browserForward()}><ArrowRight size={18}/></button>
           <button className="browser-control" onClick={() => window.ytm?.browserReload()}><RefreshCw size={18}/></button>
           <form className="address-bar" onSubmit={(e) => { e.preventDefault(); navigate(); }}><span>🔒</span><input value={address} onChange={(e) => setAddress(e.target.value)} /></form>
-          <div className="active-session"><i/>{selected ? `Sesi: ${selected.display_name}` : "Belum ada sesi"}</div>
+          <div className="active-session"><i/>{selected ? `Sesi: ${selected.display_name}` : "Belum ada sesi"}</div>\n          <button className="browser-control login-test-button" disabled={!selected || loginChecking || browserState.loading} onClick={testProfileLogin} title="Uji status login YouTube">{loginChecking ? "Menguji..." : "Uji Login"}</button>
         </div>
         <div className="browser-viewport" ref={browserPaneRef}>
           {!selected && <div className="browser-empty"><Globe size={38}/><h2>Pilih akun YouTube</h2><p>Setiap akun memiliki sesi browser yang terpisah.</p></div>}
