@@ -28,6 +28,7 @@ export default function App() {
   const [showAdd, setShowAdd] = useState(false);
   const [page, setPage] = useState("Dashboard");
   const [browserState, setBrowserState] = useState({ url: "https://www.youtube.com", loading: false });
+  const [activityLogs, setActivityLogs] = useState([]);
   const [address, setAddress] = useState("https://www.youtube.com");
   const browserPaneRef = useRef(null);
 
@@ -47,6 +48,21 @@ export default function App() {
   }, [session, selected]);
 
   useEffect(() => { loadAccounts(); }, [loadAccounts]);
+
+  useEffect(() => {
+    if (page === "Dashboard" && selected && window.ytm) {
+      window.ytm.openAccountBrowser(selected.browser_profile_id, "https://www.youtube.com").catch(console.error);
+    } else if (page !== "Dashboard") {
+      window.ytm?.hideBrowser();
+    }
+  }, [page, selected?.id]);
+
+  useEffect(() => {
+    if (page !== "Riwayat Aktivitas" || !supabase || !session?.user) return;
+    supabase.from("yt_activity_logs").select("id,event_type,description,created_at,yt_accounts(display_name)")
+      .order("created_at", { ascending: false }).limit(100)
+      .then(({ data, error }) => { if (!error) setActivityLogs(data || []); });
+  }, [page, session]);
 
   useEffect(() => {
     const updateBounds = () => {
@@ -108,7 +124,7 @@ export default function App() {
     if (!account || !window.ytm) return;
     setSelected(account);
     setPage("Dashboard");
-    await window.ytm.openAccountBrowser(account.browser_profile_id, "https://www.youtube.com");
+    // Browser profile is activated by the page/selection effect.
     if (supabase && session?.user) {
       await supabase.from("yt_accounts").update({ last_used_at: new Date().toISOString() }).eq("id", account.id);
       await supabase.from("yt_activity_logs").insert({
@@ -169,7 +185,7 @@ export default function App() {
         <div className="account-list">
           {filteredAccounts.map((account) => <div key={account.id} className={selected?.id === account.id ? "account-item selected" : "account-item"} onClick={() => openAccount(account)}>
             <div className="avatar">{initials(account.display_name)}</div><div className="account-meta"><strong>{account.display_name}</strong><span>{account.email || "Email belum diisi"}</span></div>
-            <span className="login-status"><i/>Login</span><button className="more-button" onClick={(e) => { e.stopPropagation(); removeAccount(account); }} title="Hapus">⋮</button>
+            <span className={account.account_status === "logged_in" ? "login-status logged-in" : "login-status"}><i/>{account.account_status === "logged_in" ? "Login" : "Profil"}</span><button className="more-button" onClick={(e) => { e.stopPropagation(); removeAccount(account); }} title="Hapus">⋮</button>
           </div>)}
           {!filteredAccounts.length && <div className="empty-state">Belum ada akun. Tambahkan akun YouTube untuk memulai.</div>}
         </div>
