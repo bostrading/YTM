@@ -68,6 +68,7 @@ export default function App() {
     const updateBounds = () => {
       const el = browserPaneRef.current;
       if (!el || !window.ytm) return;
+      if (page !== "Dashboard") { window.ytm.hideBrowser(); return; }
       const r = el.getBoundingClientRect();
       window.ytm.setBrowserBounds({ x: r.left, y: r.top, width: r.width, height: r.height });
     };
