@@ -128,7 +128,7 @@ export default function App() {
     setLoginChecking(true);
     try {
       const result = await window.ytm.checkYoutubeLogin(selected.browser_profile_id);
-      const status = result.signedIn ? "logged_in" : "not_logged_in";
+      const status = result.signedIn ? "logged_in" : "logged_out";
       setLoginResults((prev) => ({ ...prev, [selected.id]: { status, accountLabel: result.accountLabel || "", checkedAt: result.checkedAt } }));
       const { error } = await supabase.from("yt_accounts").update({ account_status: status }).eq("id", selected.id);
       if (error) throw error;
@@ -204,7 +204,7 @@ export default function App() {
         <div className="account-list">
           {filteredAccounts.map((account) => <div key={account.id} className={selected?.id === account.id ? "account-item selected" : "account-item"} onClick={() => openAccount(account)}>
             <div className="avatar">{initials(account.display_name)}</div><div className="account-meta"><strong>{account.display_name}</strong><span>{account.email || "Email belum diisi"}</span></div>
-            <span className={account.account_status === "logged_in" ? "login-status logged-in" : "login-status"}><i/>{account.account_status === "logged_in" ? "Login terverifikasi" : "Belum diuji / logout"}</span><button className="more-button" onClick={(e) => { e.stopPropagation(); removeAccount(account); }} title="Hapus">⋮</button>
+            <span className={account.account_status === "logged_in" ? "login-status logged-in" : "login-status"}><i/>{account.account_status === "logged_in" ? "Login terverifikasi" : account.account_status === "logged_out" ? "Logout" : "Belum diuji"}</span><button className="more-button" onClick={(e) => { e.stopPropagation(); removeAccount(account); }} title="Hapus">⋮</button>
           </div>)}
           {!filteredAccounts.length && <div className="empty-state">Belum ada akun. Tambahkan akun YouTube untuk memulai.</div>}
         </div>
