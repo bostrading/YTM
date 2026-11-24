@@ -123,7 +123,23 @@ export default function App() {
     openAccount(data);
   }
 
-  async function testProfileLogin() {\n    if (!selected || !window.ytm) return;\n    setLoginChecking(true);\n    try {\n      const result = await window.ytm.checkYoutubeLogin(selected.browser_profile_id);\n      const status = result.signedIn ? "logged_in" : "not_logged_in";\n      setLoginResults((prev) => ({ ...prev, [selected.id]: { status, accountLabel: result.accountLabel || "", checkedAt: result.checkedAt } }));\n      const { error } = await supabase.from("yt_accounts").update({ account_status: status }).eq("id", selected.id);\n      if (error) throw error;\n      setAccounts((prev) => prev.map((a) => a.id === selected.id ? { ...a, account_status: status } : a));\n      await supabase.from("yt_activity_logs").insert({ user_id: session.user.id, account_id: selected.id, event_type: "login_test", description: result.signedIn ? `Login YouTube terverifikasi${result.accountLabel ? `: ${result.accountLabel}` : ""}` : "Belum login ke YouTube" });\n    } catch (error) {\n      alert(error.message || "Pemeriksaan login gagal.");\n    } finally { setLoginChecking(false); }\n  }\n\n  async function openAccount(account) {
+  async function testProfileLogin() {
+    if (!selected || !window.ytm) return;
+    setLoginChecking(true);
+    try {
+      const result = await window.ytm.checkYoutubeLogin(selected.browser_profile_id);
+      const status = result.signedIn ? "logged_in" : "not_logged_in";
+      setLoginResults((prev) => ({ ...prev, [selected.id]: { status, accountLabel: result.accountLabel || "", checkedAt: result.checkedAt } }));
+      const { error } = await supabase.from("yt_accounts").update({ account_status: status }).eq("id", selected.id);
+      if (error) throw error;
+      setAccounts((prev) => prev.map((a) => a.id === selected.id ? { ...a, account_status: status } : a));
+      await supabase.from("yt_activity_logs").insert({ user_id: session.user.id, account_id: selected.id, event_type: "login_test", description: result.signedIn ? `Login YouTube terverifikasi${result.accountLabel ? `: ${result.accountLabel}` : ""}` : "Belum login ke YouTube" });
+    } catch (error) {
+      alert(error.message || "Pemeriksaan login gagal.");
+    } finally { setLoginChecking(false); }
+  }
+
+  async function openAccount(account) {
     if (!account || !window.ytm) return;
     setSelected(account);
     setPage("Dashboard");
@@ -202,7 +218,8 @@ export default function App() {
           <button className="browser-control" onClick={() => window.ytm?.browserForward()}><ArrowRight size={18}/></button>
           <button className="browser-control" onClick={() => window.ytm?.browserReload()}><RefreshCw size={18}/></button>
           <form className="address-bar" onSubmit={(e) => { e.preventDefault(); navigate(); }}><span>🔒</span><input value={address} onChange={(e) => setAddress(e.target.value)} /></form>
-          <div className="active-session"><i/>{selected ? `Sesi: ${selected.display_name}` : "Belum ada sesi"}</div>\n          <button className="browser-control login-test-button" disabled={!selected || loginChecking || browserState.loading} onClick={testProfileLogin} title="Uji status login YouTube">{loginChecking ? "Menguji..." : "Uji Login"}</button>
+          <div className="active-session"><i/>{selected ? `Sesi: ${selected.display_name}` : "Belum ada sesi"}</div>
+          <button className="browser-control login-test-button" disabled={!selected || loginChecking || browserState.loading} onClick={testProfileLogin} title="Uji status login YouTube">{loginChecking ? "Menguji..." : "Uji Login"}</button>
         </div>
         <div className="browser-viewport" ref={browserPaneRef}>
           {!selected && <div className="browser-empty"><Globe size={38}/><h2>Pilih akun YouTube</h2><p>Setiap akun memiliki sesi browser yang terpisah.</p></div>}
