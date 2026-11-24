@@ -44,14 +44,14 @@ Artifact disimpan selama 14 hari. Installer belum ditandatangani sertifikat code
 
 ## Konfigurasi dan penggunaan pertama
 
-1. Jalankan installer pada komputer Windows.
-2. Buka YT Manager.
-3. Daftar akun aplikasi dengan email dan password, lalu verifikasi email jika Supabase Auth meminta.
-4. Login ke YT Manager.
-5. Pilih **Tambah Akun**, isi nama label dan email opsional.
+1. Admin membuat akun aplikasi melalui Supabase Dashboard → **Authentication** → **Users** → **Add user**. Masukkan email dan password, lalu aktifkan konfirmasi email sesuai kebijakan admin.
+2. Pada Supabase Dashboard → **Authentication** → **Sign In / Providers** → **Email**, nonaktifkan **Allow new users to sign up** agar pendaftaran publik ditolak di sisi server.
+3. Jalankan installer pada komputer Windows dan buka YT Manager.
+4. Pengguna login memakai email dan password yang diberikan admin. Halaman login aplikasi hanya menyediakan menu **Login**; tidak ada pendaftaran mandiri.
+5. Pilih **Tambah Akun** untuk menambahkan profil/label akun YouTube (ini bukan membuat akun login YT Manager).
 6. Klik profil akun di daftar kiri; browser YouTube akan dibuka.
 7. Login ke Google/YouTube langsung di browser terintegrasi.
-8. Tambahkan akun lain untuk membuat profil browser lokal baru. Gunakan menu akun untuk berpindah profil.
+8. Tambahkan profil lain untuk memisahkan sesi browser lokal dan gunakan daftar akun untuk berpindah profil.
 
 Data profil browser disimpan lokal di komputer Windows. Backup folder data aplikasi sebelum memindahkan instalasi atau mengganti komputer. Jangan bagikan folder profil karena dapat berisi sesi login.
 
