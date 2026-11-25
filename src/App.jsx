@@ -333,6 +333,20 @@ export default function App() {
     } finally { setLoginChecking(false); }
   }
 
+  async function confirmYoutubeAccount() {
+    if (!selected || !supabase || !session?.user) return;
+    const email = (selected.email || "").trim().toLowerCase();
+    const prompt = email
+      ? `Pastikan email pada foto profil YouTube yang sedang terbuka adalah ${email}. Apakah sudah cocok?`
+      : "Pastikan Anda sudah membuka foto profil YouTube dan memeriksa alamat email akun yang benar. Apakah akun sudah cocok?";
+    if (!window.confirm(prompt)) return;
+    const { error } = await supabase.from("yt_accounts").update({ account_status: "logged_in", updated_at: new Date().toISOString() }).eq("id", selected.id);
+    if (error) { alert("Verifikasi gagal disimpan: " + error.message); return; }
+    setAccounts((prev) => prev.map((a) => a.id === selected.id ? { ...a, account_status: "logged_in" } : a));
+    await supabase.from("yt_activity_logs").insert({ user_id: session.user.id, account_id: selected.id, event_type: "youtube_account_confirmed", description: "Pengguna mengonfirmasi kecocokan email pada profil YouTube secara manual." });
+    alert("Konfirmasi akun tersimpan. Status ditampilkan sebagai Aktif berdasarkan pemeriksaan manual Anda.");
+  }
+
   async function openAccount(account) {
     if (!account) return;
     if (isAdmin && account.user_id !== session?.user?.id) {
@@ -342,7 +356,7 @@ export default function App() {
     }
     const alreadyActiveOnDashboard = selected?.id === account.id && page === "Dashboard";
     setSelected(account);
-    setPage("Dashboard");
+    if (page !== "Akun") setPage("Dashboard");
     // Re-open explicitly when the selected row is clicked again. The selection
     // effect does not run when React receives the same selected account twice.
     if (alreadyActiveOnDashboard && isDesktop && account.browser_profile_id) {
@@ -643,7 +657,7 @@ export default function App() {
       </header>
       <aside className="sidebar">
         <nav>
-          {[["Dashboard", Home], ["Subscribe", Users], ["Jam Tayang", Globe], ["Pengaturan", Settings]].map(([label, Icon]) =>
+          {[["Dashboard", Home], ["Akun", Users], ["Subscribe", Users], ["Jam Tayang", Globe], ["Pengaturan", Settings]].map(([label, Icon]) =>
             <button key={label} className={page === label ? "nav-item active" : "nav-item"} onClick={() => setPage(label)}><Icon size={19}/>{label}</button>
           )}
         </nav>
@@ -664,9 +678,22 @@ export default function App() {
         <div className="user-foot"><ShieldCheck size={16}/><span>{session.user.email}</span></div>
       </section>
       <main className="browser-panel">
-        {page === "Pengaturan" || page === "Subscribe" || page === "Jam Tayang" ? (
+        {page === "Pengaturan" || page === "Subscribe" || page === "Jam Tayang" || page === "Akun" ? (
           <div className="settings-view">
-            {page === "Subscribe" ? <>
+            {page === "Akun" ? <>
+              <h2>Manajemen Akun YouTube</h2>
+              <p className="settings-description">Daftar akun tersimpan di Supabase dan tetap tersedia setelah aplikasi ditutup. Pilih akun pada panel kiri untuk melihat detailnya.</p>
+              {selected ? <section className="settings-card channel-target-card"><div className="settings-card-content">
+                <div className="settings-current-account">Nama akun: <strong>{selected.display_name}</strong></div>
+                <div className="settings-current-account">Email terdaftar: <strong>{selected.email || "Belum diisi"}</strong></div>
+                <div className="settings-current-account">Status: <strong>{selected.account_status === "logged_in" ? "Aktif (konfirmasi manual)" : selected.account_status === "logged_out" ? "Belum login" : "Belum diverifikasi"}</strong></div>
+                <div className="settings-current-account">Data dibuat: <strong>{selected.created_at ? new Date(selected.created_at).toLocaleString("id-ID") : "—"}</strong></div>
+                <div className="settings-safety-note">Untuk verifikasi: buka YouTube, ketuk foto profil, lalu cocokkan email yang tampil dengan email terdaftar di atas. Jangan masukkan password Google ke Kubang YT.</div>
+                {isAndroidApp && <button className="primary settings-action-button" onClick={openAndroidHome}>Buka YouTube untuk akun ini</button>}
+                <button className="secondary-action settings-action-button" onClick={confirmYoutubeAccount}>Konfirmasi Email YouTube Cocok</button>
+              </div></section> : <div className="settings-safety-note">Pilih akun dari panel kiri atau tambahkan akun baru.</div>}
+              <div className="settings-safety-note">Catatan sesi: data akun dan email tersimpan di server. Sesi login YouTube adalah data browser lokal; jangan hapus data aplikasi jika ingin mempertahankan sesi. Isolasi profil WebView penuh tidak tersedia pada Android 7.</div>
+            </> : page === "Subscribe" ? <>
               <h2>Subscribe</h2>
               <p className="settings-description">Masukkan link channel tujuan. Sesi Subscribe dilakukan manual dan terpisah dari Jam Tayang.</p>
               <section className="settings-card channel-target-card"><div className="settings-card-content">
