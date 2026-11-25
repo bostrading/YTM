@@ -67,7 +67,7 @@ jobs:
                       android:theme="@android:style/Theme.Material.Light.NoActionBar" />
           '''
           if ".YtmBrowserActivity" not in content:
-              content = content.replace("</application>", activity + "\\n    </application>")
+              content = content.replace("</application>", activity + "\n    </application>")
               manifest.write_text(content)
           PY
 
