@@ -30,6 +30,8 @@ export default function App() {
   const [loginChecking, setLoginChecking] = useState(false);
   const [loginResults, setLoginResults] = useState({});
   const [address, setAddress] = useState("https://www.youtube.com");
+  const [targetChannelUrl, setTargetChannelUrl] = useState(() => window.localStorage.getItem("ytm-target-channel-url") || "");
+  const [settingsMessage, setSettingsMessage] = useState("");
   const browserPaneRef = useRef(null);
 
   useEffect(() => {
@@ -180,6 +182,50 @@ export default function App() {
 
   function navigate() { window.ytm?.navigateBrowser(address).catch((e) => alert(e.message)); }
 
+  function saveTargetChannel() {
+    const value = targetChannelUrl.trim();
+    try {
+      const parsed = new URL(value);
+      if (parsed.protocol !== "https:" || !["youtube.com", "www.youtube.com", "m.youtube.com"].includes(parsed.hostname)) {
+        setSettingsMessage("Masukkan URL channel YouTube yang valid (https://www.youtube.com/...).");
+        return;
+      }
+    } catch {
+      setSettingsMessage("URL channel belum valid. Gunakan tautan lengkap yang diawali https://.");
+      return;
+    }
+    window.localStorage.setItem("ytm-target-channel-url", value);
+    setTargetChannelUrl(value);
+    setSettingsMessage("Link channel tujuan tersimpan di perangkat ini.");
+  }
+
+  function chooseRandomAccount() {
+    if (!accounts.length) { setSettingsMessage("Belum ada akun untuk dipilih."); return; }
+    const candidates = accounts.filter((account) => account.id !== selected?.id);
+    const pool = candidates.length ? candidates : accounts;
+    const account = pool[Math.floor(Math.random() * pool.length)];
+    setSelected(account);
+    setSettingsMessage(`Akun terpilih: ${account.display_name}. Buka channel tujuan secara manual jika sudah siap.`);
+  }
+
+  async function openTargetChannel() {
+    if (!targetChannelUrl.trim()) { setSettingsMessage("Simpan link channel tujuan terlebih dahulu."); return; }
+    if (!selected) { setSettingsMessage("Pilih akun terlebih dahulu."); return; }
+    if (!isDesktop) { setSettingsMessage("Buka channel tujuan melalui aplikasi YT Manager Windows."); return; }
+    try {
+      await window.ytm.openAccountBrowser(selected.browser_profile_id, targetChannelUrl.trim());
+      await supabase?.from("yt_activity_logs").insert({
+        user_id: session.user.id, account_id: selected.id,
+        event_type: "channel_research_opened",
+        description: `Channel tujuan dibuka secara manual: ${targetChannelUrl.trim()}`
+      });
+      setAddress(targetChannelUrl.trim());
+      setSettingsMessage(`Channel tujuan dibuka pada profil ${selected.display_name}. Aktivitas menonton dan subscribe tetap dilakukan manual.`);
+    } catch (error) {
+      setSettingsMessage(error.message || "Channel tujuan gagal dibuka.");
+    }
+  }
+
   if (!session) return (
     <div className="auth-screen">
       <form className="auth-card" onSubmit={authenticate}>
@@ -224,6 +270,28 @@ export default function App() {
         <div className="user-foot"><ShieldCheck size={16}/><span>{session.user.email}</span></div>
       </section>
       <main className="browser-panel">
+        {page === "Pengaturan" ? (
+          <div className="settings-view">
+            <h2>Pengaturan Channel</h2>
+            <p className="settings-description">Atur channel tujuan untuk sesi riset. Link disimpan secara lokal pada perangkat ini.</p>
+            <section className="settings-card channel-target-card">
+              <div className="settings-card-content">
+                <strong>Link Channel Tujuan</strong>
+                <p>Masukkan URL channel YouTube yang ingin diperiksa.</p>
+                <input className="target-channel-input" type="url" value={targetChannelUrl} onChange={(e) => { setTargetChannelUrl(e.target.value); setSettingsMessage(""); }} placeholder="https://www.youtube.com/@nama-channel" />
+                <div className="settings-actions">
+                  <button className="primary settings-action-button" onClick={saveTargetChannel}>Simpan Link</button>
+                  <button className="secondary-action settings-action-button" onClick={chooseRandomAccount} disabled={!accounts.length}>Pilih Akun Acak</button>
+                  <button className="secondary-action settings-action-button" onClick={openTargetChannel} disabled={!selected || !targetChannelUrl.trim()}>Buka Channel Tujuan</button>
+                </div>
+                {settingsMessage && <div className="settings-feedback">{settingsMessage}</div>}
+                <div className="settings-current-account">Akun terpilih: <strong>{selected?.display_name || "Belum ada akun"}</strong></div>
+              </div>
+            </section>
+            <div className="settings-safety-note">Sesi riset dijalankan secara manual. YT Manager tidak menjalankan tontonan, Subscribe, atau interaksi massal secara otomatis.</div>
+          </div>
+        ) : (
+        <>
         <div className="browser-toolbar">
           <div className="browser-title"><Globe size={18}/>{isDesktop ? "Browser" : "Web Dashboard"}</div>
           {isDesktop ? <><button className="browser-control" onClick={() => window.ytm.browserBack()}><ArrowLeft size={18}/></button><button className="browser-control" onClick={() => window.ytm.browserForward()}><ArrowRight size={18}/></button><button className="browser-control" onClick={() => window.ytm.browserReload()}><RefreshCw size={18}/></button><form className="address-bar" onSubmit={(e) => { e.preventDefault(); navigate(); }}><span>🔒</span><input value={address} onChange={(e) => setAddress(e.target.value)} /></form><div className="active-session"><i/>{selected ? `Sesi: ${selected.display_name}` : "Belum ada sesi"}</div><button className="browser-control login-test-button" disabled={!selected || loginChecking || browserState.loading} onClick={testProfileLogin} title="Uji status login YouTube">{loginChecking ? "Menguji..." : "Uji Login"}</button></> : <div className="active-session">Mode web · login YouTube hanya di aplikasi Windows</div>}
@@ -252,6 +320,8 @@ export default function App() {
             </div>
           ) : <>{!selected && <div className="browser-empty"><Globe size={38}/><h2>Pilih akun YouTube</h2><p>Setiap akun memiliki sesi browser yang terpisah.</p></div>}{browserState.loading && <div className="loading-line"/>}</>}
         </div>
+        </>
+        )}
       </main>
       {showAdd && <div className="modal-backdrop" onClick={() => setShowAdd(false)}><form className="modal" onSubmit={addAccount} onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" type="button" onClick={() => setShowAdd(false)}><X size={18}/></button><h2>Tambah Akun YouTube</h2><p>{isDesktop ? "Data ini memberi label pada profil browser baru. Login Google dilakukan langsung di browser YouTube." : "Data akun disimpan di dashboard. Sesi browser YouTube terpisah dibuat melalui aplikasi Windows."}</p>
