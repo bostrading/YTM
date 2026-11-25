@@ -9,6 +9,13 @@ contextBridge.exposeInMainWorld("ytm", {
   browserForward: () => ipcRenderer.send("browser:forward"),
   browserReload: () => ipcRenderer.send("browser:reload"),
   hideBrowser: () => ipcRenderer.send("browser:hide"),
+  startVideoProgress: () => ipcRenderer.send("browser:start-video-progress"),
+  stopVideoProgress: () => ipcRenderer.send("browser:stop-video-progress"),
+  onVideoProgress: (callback) => {
+    const listener = (_event, state) => callback(state);
+    ipcRenderer.on("browser:video-progress", listener);
+    return () => ipcRenderer.removeListener("browser:video-progress", listener);
+  },
   onBrowserState: (callback) => {
     const listener = (_event, state) => callback(state);
     ipcRenderer.on("browser:state", listener);
