@@ -116,10 +116,13 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --build-cache --parallel --no-daemon --max-workers=2
 
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk YTMsewu.apk
+
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: YT-Manager-Android-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: YTMsewu
+          path: YTMsewu.apk
           if-no-files-found: error
           retention-days: 14
