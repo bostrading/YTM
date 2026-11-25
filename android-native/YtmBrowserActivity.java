@@ -17,10 +17,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.graphics.Typeface;
-import androidx.webkit.Profile;
-import androidx.webkit.ProfileStore;
-import androidx.webkit.WebViewCompat;
-import androidx.webkit.WebViewFeature;
 
 public class YtmBrowserActivity extends Activity {
     private WebView webView;
@@ -30,27 +26,16 @@ public class YtmBrowserActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        String rawProfileId = getIntent().getStringExtra("profileId");
-        String accountName = getIntent().getStringExtra("accountName");
-        if (rawProfileId == null || rawProfileId.trim().isEmpty()) {
-            Toast.makeText(this, "Profil akun tidak ditemukan. Browser tidak dibuka.", Toast.LENGTH_LONG).show();
-            finish();
-            return;
-        }
-        if (!WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)) {
-            Toast.makeText(this, "WebView perangkat belum mendukung sesi multi-akun. Perbarui Android System WebView melalui Play Store.", Toast.LENGTH_LONG).show();
-            finish();
-            return;
-        }
+        // Android 7 compatibility: use the standard persistent shared WebView profile.
         getWindow().setStatusBarColor(Color.rgb(18, 24, 38));
         getWindow().setNavigationBarColor(Color.BLACK);
-        buildBrowser(rawProfileId, accountName == null ? "Akun YouTube" : accountName);
+        buildBrowser();
         String initialUrl = getIntent().getStringExtra("url");
         if (initialUrl == null || initialUrl.isEmpty()) initialUrl = "https://www.youtube.com";
         loadAddress(initialUrl);
     }
 
-    private void buildBrowser(String rawProfileId, String accountName) {
+    private void buildBrowser() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.WHITE);
@@ -92,7 +77,7 @@ public class YtmBrowserActivity extends Activity {
         toolbar.addView(close, new LinearLayout.LayoutParams(dp(42), dp(44)));
 
         TextView profileLabel = new TextView(this);
-        profileLabel.setText("PROFIL AKTIF  •  " + accountName);
+        profileLabel.setText("SESI BROWSER BERSAMA  •  SEMUA AKUN");
         profileLabel.setTextColor(Color.rgb(232, 198, 110));
         profileLabel.setTextSize(11);
         profileLabel.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
@@ -107,30 +92,21 @@ public class YtmBrowserActivity extends Activity {
         root.addView(progress, new LinearLayout.LayoutParams(-1, dp(3)));
 
         webView = new WebView(this);
-        String profileName = "account_" + rawProfileId.replaceAll("[^A-Za-z0-9_-]", "_");
-        Profile profile = ProfileStore.getInstance().getOrCreateProfile(profileName);
-        WebViewCompat.setProfile(webView, profileName);
-        Profile appliedProfile = WebViewCompat.getProfile(webView);
-        if (appliedProfile == null || !profileName.equals(appliedProfile.getName())) {
-            Toast.makeText(this, "Profil browser gagal dipisahkan untuk " + accountName, Toast.LENGTH_LONG).show();
-            webView.destroy();
-            finish();
-            return;
-        }
-
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-        settings.setDatabaseEnabled(true);
+        settings.setDatabaseEnabled(false);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setMediaPlaybackRequiresUserGesture(true);
         settings.setLoadsImagesAutomatically(true);
         settings.setSupportMultipleWindows(false);
         settings.setJavaScriptCanOpenWindowsAutomatically(false);
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
-        profile.getCookieManager().setAcceptCookie(true);
-        profile.getCookieManager().setAcceptThirdPartyCookies(webView, true);
+        android.webkit.CookieManager cookies = android.webkit.CookieManager.getInstance();
+        cookies.setAcceptCookie(true);
+        cookies.setAcceptThirdPartyCookies(webView, true);
         webView.setWebChromeClient(new WebChromeClient() {
             @Override public void onProgressChanged(WebView view, int newProgress) {
                 progress.setProgress(newProgress);
@@ -147,7 +123,7 @@ public class YtmBrowserActivity extends Activity {
             }
             @Override public void onPageFinished(WebView view, String url) {
                 address.setText(url);
-                profile.getCookieManager().flush();
+                cookies.flush();
             }
         });
         root.addView(webView, new LinearLayout.LayoutParams(-1, 0, 1));
