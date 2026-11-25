@@ -446,7 +446,7 @@ export default function App() {
     if (activeTask && activeTask !== "subscribe") { setSettingsMessage("Selesaikan tugas Jam Tayang terlebih dahulu."); return; }
     if (!targetChannelUrl.trim()) { setSettingsMessage("Simpan link channel tujuan terlebih dahulu."); return; }
     if (!selected) { setSettingsMessage("Pilih akun terlebih dahulu."); return; }
-    if (!isDesktop && !isAndroidApp) { setSettingsMessage("Buka channel tujuan melalui aplikasi YT Manager."); return; }
+    if (!isDesktop && !isAndroidApp) { setSettingsMessage("Buka channel tujuan melalui aplikasi Kubang YT."); return; }
     try {
       if (isAndroidApp) await YtmBrowser.open({ url: targetChannelUrl.trim() });
       else await window.ytm.openAccountBrowser(selected.browser_profile_id, targetChannelUrl.trim());
@@ -546,7 +546,7 @@ export default function App() {
     }
     if (!targetVideoUrl.trim()) { setVideoTaskMessage("Simpan link video terlebih dahulu."); return; }
     if (!selected) { setVideoTaskMessage("Pilih akun terlebih dahulu."); return; }
-    if (!isDesktop && !isAndroidApp) { setVideoTaskMessage("Buka video melalui aplikasi YT Manager."); return; }
+    if (!isDesktop && !isAndroidApp) { setVideoTaskMessage("Buka video melalui aplikasi Kubang YT."); return; }
     try {
       if (isAndroidApp) {
         await YtmBrowser.open({ url: targetVideoUrl.trim() });
@@ -601,7 +601,7 @@ export default function App() {
   if (!session) return (
     <div className="auth-screen">
       <form className="auth-card" onSubmit={authenticate}>
-        <div className="brand-mark">▶</div><h1>YT Manager</h1>
+        <img className="brand-logo" src="/kubang-yt-icon.svg" alt="Kubang YT" /><h1>Kubang YT</h1>
         <p>Multi Account Dashboard</p>
         {!supabase && <div className="notice">Isi VITE_SUPABASE_URL dan VITE_SUPABASE_PUBLISHABLE_KEY pada .env terlebih dahulu.</div>}
         <label>Email</label><input type="email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} required />
@@ -615,7 +615,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="brand"><div className="brand-mark">▶</div><div><strong>YT Manager</strong><span>Multi Account Dashboard</span></div></div>
+        <div className="brand"><img className="brand-logo" src="/kubang-yt-icon.svg" alt="" /><div><strong>Kubang YT</strong><span>Multi Account Dashboard</span></div></div>
         <div className="system-status"><i />System Online</div>
         {isDesktop && <><button className="icon-button" title="Minimize">—</button><button className="icon-button" title="Maximize">□</button><button className="icon-button" title="Close">×</button></>}
       </header>
@@ -691,10 +691,10 @@ export default function App() {
                 <div className="settings-current-account">Status pemantauan: <strong>{videoTaskStatus === "completed" ? "Selesai otomatis" : videoTaskStatus === "opened" ? "Video dibuka / diputar" : "Belum dimulai"}</strong></div>
                 {activeTask === "subscribe" && <div className="settings-feedback">Sesi Subscribe sedang aktif. Selesaikan sesi tersebut sebelum membuka Jam Tayang.</div>}
               </div></section>
-              <div className="settings-safety-note">YT Manager tidak memutar video otomatis atau mengklaim durasi tontonan. Pengguna membuka dan memverifikasi video secara manual.</div>
+              <div className="settings-safety-note">Kubang YT tidak memutar video otomatis atau mengklaim durasi tontonan. Pengguna membuka dan memverifikasi video secara manual.</div>
             </> : <><h2>Pengaturan</h2><p className="settings-description">Pengaturan aplikasi dan akun.</p>
               {isAdmin ? <section className="settings-card channel-target-card app-users-card">
-                <div className="app-users-heading"><div><strong><UserCog size={18}/> Pengguna Aplikasi</strong><p>Kelola akses login pengguna YT Manager.</p></div><button className="primary settings-action-button" onClick={() => { setUserModal({ mode: "add" }); setUserEmail(""); setUserName(""); setUserPassword(""); }}><Plus size={16}/> Tambahkan</button></div>
+                <div className="app-users-heading"><div><strong><UserCog size={18}/> Pengguna Aplikasi</strong><p>Kelola akses login pengguna Kubang YT.</p></div><button className="primary settings-action-button" onClick={() => { setUserModal({ mode: "add" }); setUserEmail(""); setUserName(""); setUserPassword(""); }}><Plus size={16}/> Tambahkan</button></div>
                 <div className="settings-actions"><button className="secondary-action settings-action-button" onClick={loadAppUsers} disabled={usersLoading}><RefreshIcon size={15}/> {usersLoading ? "Memuat..." : "Muat Ulang"}</button></div>
                 {userMessage && <div className="settings-feedback">{userMessage}</div>}
                 {usersLoading ? <div className="empty-state">Memuat daftar pengguna...</div> : <div className="app-users-list">
@@ -729,7 +729,7 @@ export default function App() {
                   </div>
                   <div className="web-browser-notice">
                     <Globe size={20}/>
-                    <div><strong>{isAndroidApp ? "Browser YouTube Android" : "Browser YouTube tidak tersedia di website"}</strong><p>{isAndroidApp ? "Browser internal tersedia di APK. Catatan: sesi login WebView masih digunakan bersama, belum terpisah untuk setiap akun." : "Pemilihan akun berhasil. Untuk membuka YouTube dan login menggunakan sesi profil ini, jalankan aplikasi YT Manager di Windows lalu pilih akun yang sama."}</p>{isAndroidApp && <button className="primary settings-action-button" onClick={openAndroidHome}>Buka Browser YouTube</button>}</div>
+                    <div><strong>{isAndroidApp ? "Browser YouTube Android" : "Browser YouTube tidak tersedia di website"}</strong><p>{isAndroidApp ? "Browser internal tersedia di APK. Catatan: sesi login WebView masih digunakan bersama, belum terpisah untuk setiap akun." : "Pemilihan akun berhasil. Untuk membuka YouTube dan login menggunakan sesi profil ini, jalankan aplikasi Kubang YT di Windows lalu pilih akun yang sama."}</p>{isAndroidApp && <button className="primary settings-action-button" onClick={openAndroidHome}>Buka Browser YouTube</button>}</div>
                   </div>
                 </>
               ) : (
