@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "src/**"
+      - "android-native/**"
       - "public/**"
       - "index.html"
       - "package.json"
@@ -45,6 +46,30 @@ jobs:
 
       - name: Sync Capacitor
         run: npx cap sync android
+
+      - name: Install native Android browser
+        run: |
+          APP_JAVA=android/app/src/main/java/com/bostrading/ytmanager
+          mkdir -p "$APP_JAVA"
+          cp android-native/MainActivity.java "$APP_JAVA/MainActivity.java"
+          cp android-native/YtmBrowserPlugin.java "$APP_JAVA/YtmBrowserPlugin.java"
+          cp android-native/YtmBrowserActivity.java "$APP_JAVA/YtmBrowserActivity.java"
+          python3 - <<'PY'
+          from pathlib import Path
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          content = manifest.read_text()
+          activity = '''
+                  <activity
+                      android:name=".YtmBrowserActivity"
+                      android:exported="false"
+                      android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize"
+                      android:windowSoftInputMode="adjustResize"
+                      android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+          '''
+          if ".YtmBrowserActivity" not in content:
+              content = content.replace("</application>", activity + "\\n    </application>")
+              manifest.write_text(content)
+          PY
 
       - name: Restore stable Android signing key
         uses: actions/cache@v4
