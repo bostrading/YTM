@@ -1,0 +1,6 @@
+{
+  "appId": "com.bostrading.ytmanager",
+  "appName": "YT Manager",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
