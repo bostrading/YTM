@@ -377,7 +377,7 @@ export default function App() {
 
   async function openAndroidHome() {
     try { if (!selected) throw new Error("Pilih akun YouTube terlebih dahulu.");
-      await YtmBrowser.open({ url: "https://www.youtube.com", profileId: selected.browser_profile_id || selected.id }); }
+      await YtmBrowser.open({ url: "https://www.youtube.com", profileId: selected.browser_profile_id || selected.id, accountName: selected.display_name || "Akun YouTube" }); }
     catch (error) { alert(error.message || "Browser Android gagal dibuka."); }
   }
 
