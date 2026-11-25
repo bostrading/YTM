@@ -33,6 +33,7 @@ export default function App() {
   const [targetChannelUrl, setTargetChannelUrl] = useState("");
   const [targetVideoUrl, setTargetVideoUrl] = useState("");
   const [videoTaskStatus, setVideoTaskStatus] = useState("idle");
+  const [videoProgress, setVideoProgress] = useState({ currentTime: 0, duration: 0, percent: null, paused: true, ended: false, available: false });
   const [videoTaskMessage, setVideoTaskMessage] = useState("");
   const [activeTask, setActiveTask] = useState(null);
   const [settingsMessage, setSettingsMessage] = useState("");
@@ -164,6 +165,11 @@ export default function App() {
     if (browserPaneRef.current) observer.observe(browserPaneRef.current);
     return () => { clearTimeout(timer); window.removeEventListener("resize", updateBounds); observer.disconnect(); };
   }, [page, selected, showAdd]);
+
+  useEffect(() => {
+    if (!window.ytm?.onVideoProgress) return;
+    return window.ytm.onVideoProgress((progress) => setVideoProgress(progress));
+  }, []);
 
   useEffect(() => {
     if (!window.ytm) return;
@@ -517,7 +523,9 @@ export default function App() {
       setAddress(targetVideoUrl.trim());
       setActiveTask("watch");
       setVideoTaskStatus("opened");
-      setVideoTaskMessage("Video dibuka pada profil " + selected.display_name + ". Pemutaran dan verifikasi selesai dilakukan manual.");
+      setVideoProgress({ currentTime: 0, duration: 0, percent: null, paused: true, ended: false, available: false });
+      window.ytm.startVideoProgress?.();
+      setVideoTaskMessage("Video dibuka pada profil " + selected.display_name + ". Progres mengikuti pemutar video yang terdeteksi; penyelesaian tetap dikonfirmasi manual.");
       await supabase.from("yt_activity_logs").insert({
         user_id: session.user.id, account_id: selected.id,
         event_type: "watch_video_opened",
@@ -534,6 +542,7 @@ export default function App() {
       return;
     }
     if (task === "watch") {
+      window.ytm?.stopVideoProgress?.();
       setVideoTaskStatus("completed");
       setVideoTaskMessage("Status pemantauan ditandai selesai secara manual.");
       await supabase.from("yt_activity_logs").insert({
@@ -627,7 +636,16 @@ export default function App() {
                 </div>
                 {videoTaskMessage && <div className="settings-feedback">{videoTaskMessage}</div>}
                 <div className="settings-current-account">Akun yang digunakan: <strong>{selected?.display_name || "Belum ada akun"}</strong></div>
-                <div className="settings-current-account">Progres putaran acak: <strong>{videoQueueIndex < 0 ? "Belum dimulai" : `${Math.min(videoQueueIndex + 1, videoRandomQueue.length)} / ${videoRandomQueue.length}`}</strong></div>
+                <div className="progress-section">
+                  <div className="progress-heading"><span>Progres video</span><strong>{videoProgress.percent == null ? "Belum terdeteksi" : `${videoProgress.percent}%`}</strong></div>
+                  <div className="progress-track"><div className="progress-fill video-progress-fill" style={{ width: `${videoProgress.percent ?? 0}%` }} /></div>
+                  <div className="progress-caption">{videoProgress.available ? `${Math.floor(videoProgress.currentTime / 60)}:${String(Math.floor(videoProgress.currentTime % 60)).padStart(2, "0")} dari ${Math.floor(videoProgress.duration / 60)}:${String(Math.floor(videoProgress.duration % 60)).padStart(2, "0")} · ${videoProgress.ended ? "Pemutar mencapai akhir" : videoProgress.paused ? "Dijeda / belum diputar" : "Sedang diputar"}` : "Persentase muncul jika pemutar video YouTube terdeteksi."}</div>
+                </div>
+                <div className="progress-section">
+                  <div className="progress-heading"><span>Progres putaran akun</span><strong>{videoRandomQueue.length ? `${Math.round((Math.min(videoQueueIndex + (videoTaskStatus === "completed" ? 1 : 0), videoRandomQueue.length) / videoRandomQueue.length) * 100)}%` : "0%"}</strong></div>
+                  <div className="progress-track"><div className="progress-fill" style={{ width: `${videoRandomQueue.length ? (Math.min(videoQueueIndex + (videoTaskStatus === "completed" ? 1 : 0), videoRandomQueue.length) / videoRandomQueue.length) * 100 : 0}%` }} /></div>
+                  <div className="progress-caption">{videoQueueIndex < 0 ? "Belum dimulai" : `${Math.min(videoQueueIndex + (videoTaskStatus === "completed" ? 1 : 0), videoRandomQueue.length)} dari ${videoRandomQueue.length} akun selesai dikonfirmasi`}</div>
+                </div>
                 <div className="settings-current-account">Status pemantauan: <strong>{videoTaskStatus === "completed" ? "Selesai (ditandai manual)" : videoTaskStatus === "opened" ? "Video dibuka" : "Belum dimulai"}</strong></div>
                 {activeTask === "subscribe" && <div className="settings-feedback">Sesi Subscribe sedang aktif. Selesaikan sesi tersebut sebelum membuka Jam Tayang.</div>}
               </div></section>
