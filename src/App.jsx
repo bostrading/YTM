@@ -449,6 +449,8 @@ export default function App() {
     const first = accounts.find((account) => account.id === queue[0]);
     setVideoRandomQueue(queue);
     setVideoQueueIndex(0);
+    setVideoTaskStatus("idle");
+    setVideoProgress({ currentTime: 0, duration: 0, percent: null, paused: true, ended: false, available: false });
     setSelected(first);
     setVideoTaskMessage(`Putaran Jam Tayang dimulai: ${queue.length} akun diacak. Giliran 1 dari ${queue.length}: ${first.display_name}. Tekan Buka Video untuk membuka link secara manual.`);
   }
