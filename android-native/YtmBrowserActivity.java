@@ -91,6 +91,14 @@ public class YtmBrowserActivity extends Activity {
         close.setOnClickListener(v -> finish());
         toolbar.addView(close, new LinearLayout.LayoutParams(dp(42), dp(44)));
 
+        TextView profileLabel = new TextView(this);
+        profileLabel.setText("PROFIL AKTIF  •  " + accountName);
+        profileLabel.setTextColor(Color.rgb(232, 198, 110));
+        profileLabel.setTextSize(11);
+        profileLabel.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        profileLabel.setPadding(dp(14), dp(5), dp(14), dp(5));
+        profileLabel.setBackgroundColor(Color.rgb(28, 25, 19));
+
         progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         progress.setMax(100);
         progress.setVisibility(View.GONE);
@@ -110,13 +118,6 @@ public class YtmBrowserActivity extends Activity {
             return;
         }
 
-        TextView profileLabel = new TextView(this);
-        profileLabel.setText("PROFIL AKTIF  •  " + accountName);
-        profileLabel.setTextColor(Color.rgb(232, 198, 110));
-        profileLabel.setTextSize(11);
-        profileLabel.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        profileLabel.setPadding(dp(14), dp(5), dp(14), dp(5));
-        profileLabel.setBackgroundColor(Color.rgb(28, 25, 19));
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
