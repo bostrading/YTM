@@ -4,6 +4,35 @@ const path = require("node:path");
 let mainWindow;
 let browserView;
 let activeProfileId = null;
+let videoProgressTimer = null;
+
+function stopVideoProgressMonitor() {
+  if (videoProgressTimer) clearInterval(videoProgressTimer);
+  videoProgressTimer = null;
+}
+
+async function sendVideoProgress() {
+  if (!mainWindow || mainWindow.isDestroyed() || !browserView || browserView.webContents.isDestroyed()) return;
+  const wc = browserView.webContents;
+  try {
+    const state = await wc.executeJavaScript(`(() => {
+      const video = document.querySelector("video.html5-main-video") || document.querySelector("video");
+      if (!video || !Number.isFinite(video.duration) || video.duration <= 0) return { available: false };
+      const currentTime = Math.max(0, Math.min(video.currentTime || 0, video.duration));
+      return { available: true, currentTime, duration: video.duration, paused: video.paused, ended: video.ended,
+        percent: Math.max(0, Math.min(100, Math.floor((currentTime / video.duration) * 100))) };
+    })()`, true);
+    mainWindow.webContents.send("browser:video-progress", state);
+  } catch {
+    mainWindow.webContents.send("browser:video-progress", { available: false });
+  }
+}
+
+function startVideoProgressMonitor() {
+  stopVideoProgressMonitor();
+  sendVideoProgress();
+  videoProgressTimer = setInterval(sendVideoProgress, 1000);
+}
 
 function sendBrowserState(extra = {}) {
   if (!mainWindow || mainWindow.isDestroyed()) return;
@@ -134,6 +163,9 @@ ipcMain.handle("browser:check-youtube-login", async (_event, profileId) => {
   return { ...result, profileId, checkedAt: new Date().toISOString() };
 });
 
+ipcMain.on("browser:start-video-progress", () => startVideoProgressMonitor());
+ipcMain.on("browser:stop-video-progress", () => stopVideoProgressMonitor());
+
 ipcMain.on("browser:back", () => {
   if (browserView?.webContents.navigationHistory.canGoBack()) browserView.webContents.navigationHistory.goBack();
 });
@@ -147,4 +179,5 @@ app.whenReady().then(() => {
   createWindow();
   app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
+app.on("before-quit", stopVideoProgressMonitor);
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
