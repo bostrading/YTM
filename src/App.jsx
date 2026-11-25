@@ -106,6 +106,26 @@ export default function App() {
   }, [page, selected?.id]);
 
   useEffect(() => {
+    if (!session?.user?.id || !supabase) return;
+    const channel = supabase
+      .channel(`yt-user-settings-${session.user.id}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "yt_user_settings",
+        filter: `user_id=eq.${session.user.id}`
+      }, (payload) => {
+        if (payload.eventType === "DELETE") {
+          setTargetChannelUrl("");
+        } else if (payload.new?.target_channel_url !== undefined) {
+          setTargetChannelUrl(payload.new.target_channel_url || "");
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [session?.user?.id]);
+
+  useEffect(() => {
     const updateBounds = () => {
       const el = browserPaneRef.current;
       if (!el || !window.ytm) return;
