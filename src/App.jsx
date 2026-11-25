@@ -41,6 +41,8 @@ export default function App() {
   const [randomQueue, setRandomQueue] = useState([]);
   const [queueIndex, setQueueIndex] = useState(-1);
   const [queueMessage, setQueueMessage] = useState("");
+  const [videoRandomQueue, setVideoRandomQueue] = useState([]);
+  const [videoQueueIndex, setVideoQueueIndex] = useState(-1);
   const isAdmin = session?.user?.email?.toLowerCase() === "admin@ytmsewu.com";
   const [appUsers, setAppUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
@@ -428,6 +430,59 @@ export default function App() {
     }
   }
 
+  function startVideoRandomRound() {
+    if (activeTask === "subscribe") {
+      setVideoTaskMessage("Selesaikan sesi Subscribe terlebih dahulu.");
+      return;
+    }
+    if (!accounts.length) {
+      setVideoTaskMessage("Belum ada akun untuk memulai putaran acak.");
+      return;
+    }
+    const queue = shuffleAccounts(accounts.map((account) => account.id));
+    const first = accounts.find((account) => account.id === queue[0]);
+    setVideoRandomQueue(queue);
+    setVideoQueueIndex(0);
+    setSelected(first);
+    setVideoTaskMessage(`Putaran Jam Tayang dimulai: ${queue.length} akun diacak. Giliran 1 dari ${queue.length}: ${first.display_name}. Tekan Buka Video untuk membuka link secara manual.`);
+  }
+
+  async function chooseNextVideoRandomAccount() {
+    if (activeTask === "subscribe") {
+      setVideoTaskMessage("Selesaikan sesi Subscribe terlebih dahulu.");
+      return;
+    }
+    if (activeTask === "watch") {
+      setVideoTaskMessage("Selesaikan sesi video yang sedang aktif sebelum berpindah akun.");
+      return;
+    }
+    if (!videoRandomQueue.length || videoQueueIndex < 0) {
+      setVideoTaskMessage("Mulai Putar Acak terlebih dahulu.");
+      return;
+    }
+    const nextIndex = videoQueueIndex + 1;
+    if (nextIndex >= videoRandomQueue.length) {
+      setVideoQueueIndex(videoRandomQueue.length);
+      setVideoTaskMessage("Putaran Jam Tayang selesai. Semua akun sudah mendapat satu giliran. Mulai putaran baru untuk mengacak ulang.");
+      return;
+    }
+    const account = accounts.find((item) => item.id === videoRandomQueue[nextIndex]);
+    if (!account) {
+      setVideoTaskMessage("Daftar akun berubah. Mulai putaran baru agar antrean diperbarui.");
+      return;
+    }
+    setVideoQueueIndex(nextIndex);
+    setSelected(account);
+    setVideoTaskMessage(`Giliran ${nextIndex + 1} dari ${videoRandomQueue.length}: ${account.display_name}. Tekan Buka Video untuk membuka link secara manual.`);
+    if (supabase && session?.user) {
+      await supabase.from("yt_activity_logs").insert({
+        user_id: session.user.id, account_id: account.id,
+        event_type: "watch_random_account_turn",
+        description: `Giliran acak Jam Tayang ${nextIndex + 1} dari ${videoRandomQueue.length}`
+      });
+    }
+  }
+
   async function saveTargetVideo() {
     const value = targetVideoUrl.trim();
     try {
@@ -564,12 +619,15 @@ export default function App() {
                 <strong>Link Video YouTube</strong>
                 <input className="target-channel-input" type="url" value={targetVideoUrl} onChange={(e) => { setTargetVideoUrl(e.target.value); setVideoTaskMessage(""); }} placeholder="https://www.youtube.com/watch?v=..." />
                 <div className="settings-actions">
-                  <button className="primary settings-action-button" onClick={saveTargetVideo}>Simpan Link Video</button>
+                  <button className="primary settings-action-button" onClick={startVideoRandomRound} disabled={!accounts.length || activeTask === "subscribe"}>Mulai Putar Acak</button>
+                  <button className="secondary-action settings-action-button" onClick={chooseNextVideoRandomAccount} disabled={!videoRandomQueue.length || videoQueueIndex >= videoRandomQueue.length || activeTask === "subscribe" || activeTask === "watch"}>Akun Berikutnya</button>
+                  <button className="secondary-action settings-action-button" onClick={saveTargetVideo}>Simpan Link Video</button>
                   <button className="secondary-action settings-action-button" onClick={openTargetVideo} disabled={!selected || !targetVideoUrl.trim() || activeTask === "subscribe"}>Buka Video</button>
                   {activeTask === "watch" && <button className="secondary-action settings-action-button" onClick={() => completeManualTask("watch")}>Tandai Selesai</button>}
                 </div>
                 {videoTaskMessage && <div className="settings-feedback">{videoTaskMessage}</div>}
                 <div className="settings-current-account">Akun yang digunakan: <strong>{selected?.display_name || "Belum ada akun"}</strong></div>
+                <div className="settings-current-account">Progres putaran acak: <strong>{videoQueueIndex < 0 ? "Belum dimulai" : `${Math.min(videoQueueIndex + 1, videoRandomQueue.length)} / ${videoRandomQueue.length}`}</strong></div>
                 <div className="settings-current-account">Status pemantauan: <strong>{videoTaskStatus === "completed" ? "Selesai (ditandai manual)" : videoTaskStatus === "opened" ? "Video dibuka" : "Belum dimulai"}</strong></div>
                 {activeTask === "subscribe" && <div className="settings-feedback">Sesi Subscribe sedang aktif. Selesaikan sesi tersebut sebelum membuka Jam Tayang.</div>}
               </div></section>
