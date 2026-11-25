@@ -68,7 +68,7 @@ function attachBrowserEvents(view, profileId) {
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1600, height: 920, minWidth: 1100, minHeight: 680,
-    backgroundColor: "#0b1220", title: "YT Manager", autoHideMenuBar: true,
+    backgroundColor: "#0b1220", title: "Kubang YT", autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true, nodeIntegration: false, sandbox: true
@@ -174,6 +174,8 @@ ipcMain.on("browser:forward", () => {
 });
 ipcMain.on("browser:reload", () => browserView?.webContents.reload());
 ipcMain.on("browser:hide", () => { if (browserView) browserView.setBounds({ x: 0, y: 0, width: 0, height: 0 }); });
+
+app.setName("Kubang YT");
 
 app.whenReady().then(() => {
   createWindow();
