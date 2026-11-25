@@ -172,6 +172,22 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!videoProgress.ended || videoTaskStatus !== "opened" || activeTask !== "watch") return;
+    setVideoTaskStatus("completed");
+    setVideoTaskMessage("Video mencapai akhir. Status akun ditandai selesai otomatis berdasarkan pemutar yang terdeteksi.");
+    window.ytm?.stopVideoProgress?.();
+    setActiveTask(null);
+    if (session?.user?.id && selected?.id) {
+      supabase.from("yt_activity_logs").insert({
+        user_id: session.user.id,
+        account_id: selected.id,
+        event_type: "watch_video_auto_completed",
+        description: "Pemutar YouTube terdeteksi mencapai akhir video; status ditandai selesai otomatis."
+      });
+    }
+  }, [videoProgress.ended, videoTaskStatus, activeTask, session?.user?.id, selected?.id]);
+
+  useEffect(() => {
     if (!window.ytm) return;
     const off = window.ytm.onBrowserState((state) => {
       setBrowserState(state);
@@ -527,7 +543,7 @@ export default function App() {
       setVideoTaskStatus("opened");
       setVideoProgress({ currentTime: 0, duration: 0, percent: null, paused: true, ended: false, available: false });
       window.ytm.startVideoProgress?.();
-      setVideoTaskMessage("Video dibuka pada profil " + selected.display_name + ". Progres mengikuti pemutar video yang terdeteksi; penyelesaian tetap dikonfirmasi manual.");
+      setVideoTaskMessage("Video dibuka pada profil " + selected.display_name + ". Status akan selesai otomatis saat pemutar YouTube terdeteksi mencapai akhir video.");
       await supabase.from("yt_activity_logs").insert({
         user_id: session.user.id, account_id: selected.id,
         event_type: "watch_video_opened",
@@ -634,7 +650,6 @@ export default function App() {
                   <button className="secondary-action settings-action-button" onClick={chooseNextVideoRandomAccount} disabled={!videoRandomQueue.length || videoQueueIndex >= videoRandomQueue.length || activeTask === "subscribe" || activeTask === "watch"}>Akun Berikutnya</button>
                   <button className="secondary-action settings-action-button" onClick={saveTargetVideo}>Simpan Link Video</button>
                   <button className="secondary-action settings-action-button" onClick={openTargetVideo} disabled={!selected || !targetVideoUrl.trim() || activeTask === "subscribe"}>Buka Video</button>
-                  {activeTask === "watch" && <button className="secondary-action settings-action-button" onClick={() => completeManualTask("watch")}>Tandai Selesai</button>}
                 </div>
                 {videoTaskMessage && <div className="settings-feedback">{videoTaskMessage}</div>}
                 <div className="settings-current-account">Akun yang digunakan: <strong>{selected?.display_name || "Belum ada akun"}</strong></div>
@@ -646,9 +661,9 @@ export default function App() {
                 <div className="progress-section">
                   <div className="progress-heading"><span>Progres putaran akun</span><strong>{videoRandomQueue.length ? `${Math.round((Math.min(videoQueueIndex + (videoTaskStatus === "completed" ? 1 : 0), videoRandomQueue.length) / videoRandomQueue.length) * 100)}%` : "0%"}</strong></div>
                   <div className="progress-track"><div className="progress-fill" style={{ width: `${videoRandomQueue.length ? (Math.min(videoQueueIndex + (videoTaskStatus === "completed" ? 1 : 0), videoRandomQueue.length) / videoRandomQueue.length) * 100 : 0}%` }} /></div>
-                  <div className="progress-caption">{videoQueueIndex < 0 ? "Belum dimulai" : `${Math.min(videoQueueIndex + (videoTaskStatus === "completed" ? 1 : 0), videoRandomQueue.length)} dari ${videoRandomQueue.length} akun selesai dikonfirmasi`}</div>
+                  <div className="progress-caption">{videoQueueIndex < 0 ? "Belum dimulai" : `${Math.min(videoQueueIndex + (videoTaskStatus === "completed" ? 1 : 0), videoRandomQueue.length)} dari ${videoRandomQueue.length} akun selesai`}</div>
                 </div>
-                <div className="settings-current-account">Status pemantauan: <strong>{videoTaskStatus === "completed" ? "Selesai (ditandai manual)" : videoTaskStatus === "opened" ? "Video dibuka" : "Belum dimulai"}</strong></div>
+                <div className="settings-current-account">Status pemantauan: <strong>{videoTaskStatus === "completed" ? "Selesai otomatis" : videoTaskStatus === "opened" ? "Video dibuka / diputar" : "Belum dimulai"}</strong></div>
                 {activeTask === "subscribe" && <div className="settings-feedback">Sesi Subscribe sedang aktif. Selesaikan sesi tersebut sebelum membuka Jam Tayang.</div>}
               </div></section>
               <div className="settings-safety-note">YT Manager tidak memutar video otomatis atau mengklaim durasi tontonan. Pengguna membuka dan memverifikasi video secara manual.</div>
