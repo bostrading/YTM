@@ -51,6 +51,7 @@ export default function App() {
   const [userModal, setUserModal] = useState(null);
   const [userEmail, setUserEmail] = useState("");
   const [userName, setUserName] = useState("");
+  const [userPassword, setUserPassword] = useState("");
   const [userMessage, setUserMessage] = useState("");
   const [userSaving, setUserSaving] = useState(false);
   const browserPaneRef = useRef(null);
@@ -230,13 +231,13 @@ export default function App() {
     setUserMessage("");
     try {
       if (userModal?.mode === "edit") {
-        await manageAppUsers("update", { user_id: userModal.user.id, email: userEmail.trim(), display_name: userName.trim() });
+        await manageAppUsers("update", { user_id: userModal.user.id, email: userEmail.trim(), display_name: userName.trim(), ...(userPassword ? { password: userPassword } : {}) });
         setUserMessage("Data pengguna berhasil diperbarui.");
       } else {
         await manageAppUsers("invite", { email: userEmail.trim(), display_name: userName.trim() });
         setUserMessage("Undangan berhasil dikirim ke " + userEmail.trim() + ".");
       }
-      setUserModal(null); setUserEmail(""); setUserName("");
+      setUserModal(null); setUserEmail(""); setUserName(""); setUserPassword("");
       await loadAppUsers();
     } catch (error) {
       setUserMessage(error.message || "Perubahan pengguna gagal disimpan.");
@@ -670,13 +671,13 @@ export default function App() {
               <div className="settings-safety-note">YT Manager tidak memutar video otomatis atau mengklaim durasi tontonan. Pengguna membuka dan memverifikasi video secara manual.</div>
             </> : <><h2>Pengaturan</h2><p className="settings-description">Pengaturan aplikasi dan akun.</p>
               {isAdmin ? <section className="settings-card channel-target-card app-users-card">
-                <div className="app-users-heading"><div><strong><UserCog size={18}/> Pengguna Aplikasi</strong><p>Kelola akses login pengguna YT Manager.</p></div><button className="primary settings-action-button" onClick={() => { setUserModal({ mode: "add" }); setUserEmail(""); setUserName(""); }}><Plus size={16}/> Tambahkan</button></div>
+                <div className="app-users-heading"><div><strong><UserCog size={18}/> Pengguna Aplikasi</strong><p>Kelola akses login pengguna YT Manager.</p></div><button className="primary settings-action-button" onClick={() => { setUserModal({ mode: "add" }); setUserEmail(""); setUserName(""); setUserPassword(""); }}><Plus size={16}/> Tambahkan</button></div>
                 <div className="settings-actions"><button className="secondary-action settings-action-button" onClick={loadAppUsers} disabled={usersLoading}><RefreshIcon size={15}/> {usersLoading ? "Memuat..." : "Muat Ulang"}</button></div>
                 {userMessage && <div className="settings-feedback">{userMessage}</div>}
                 {usersLoading ? <div className="empty-state">Memuat daftar pengguna...</div> : <div className="app-users-list">
                   {appUsers.map((user) => { const blocked = Boolean(user.banned_until && new Date(user.banned_until) > new Date()); const pending = !user.email_confirmed_at; return <div className="app-user-row" key={user.id}>
                     <div className="app-user-avatar"><Users size={17}/></div><div className="app-user-info"><strong>{user.display_name || user.email}</strong><span>{user.email}</span><small>{blocked ? "Diblokir" : pending ? "Menunggu konfirmasi email" : "Aktif"}</small></div>
-                    <div className="app-user-actions"><button className="secondary-action" title="Edit" onClick={() => { setUserModal({ mode: "edit", user }); setUserEmail(user.email || ""); setUserName(user.display_name || ""); }}><Pencil size={15}/></button><button className="secondary-action" title={blocked ? "Buka blokir" : "Blokir"} disabled={user.email?.toLowerCase() === "admin@ytmsewu.com"} onClick={() => toggleAppUserBlock(user)}><Ban size={15}/></button><button className="danger-action" title="Hapus" disabled={user.email?.toLowerCase() === "admin@ytmsewu.com"} onClick={() => deleteAppUser(user)}><Trash2 size={15}/></button></div>
+                    <div className="app-user-actions"><button className="secondary-action" title="Edit" onClick={() => { setUserModal({ mode: "edit", user }); setUserEmail(user.email || ""); setUserName(user.display_name || ""); setUserPassword(""); }}><Pencil size={15}/></button><button className="secondary-action" title={blocked ? "Buka blokir" : "Blokir"} disabled={user.email?.toLowerCase() === "admin@ytmsewu.com"} onClick={() => toggleAppUserBlock(user)}><Ban size={15}/></button><button className="danger-action" title="Hapus" disabled={user.email?.toLowerCase() === "admin@ytmsewu.com"} onClick={() => deleteAppUser(user)}><Trash2 size={15}/></button></div>
                   </div>; })}
                   {!appUsers.length && <div className="empty-state">Belum ada pengguna lain.</div>}
                 </div>}
@@ -720,10 +721,14 @@ export default function App() {
       {userModal && <div className="modal-backdrop" onClick={() => !userSaving && setUserModal(null)}><form className="modal" onSubmit={saveAppUser} onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" type="button" onClick={() => setUserModal(null)} disabled={userSaving}><X size={18}/></button>
         <h2>{userModal.mode === "edit" ? "Edit Pengguna" : "Tambahkan Pengguna"}</h2>
-        <p>{userModal.mode === "edit" ? "Perbarui nama atau email pengguna." : "Undangan login akan dikirim ke alamat email pengguna."}</p>
+        <p>{userModal.mode === "edit" ? "Perbarui nama, email, atau password pengguna." : "Undangan login akan dikirim ke alamat email pengguna."}</p>
         <label>Nama pengguna</label><input value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="Nama pengguna" />
         <label>Email</label><input type="email" value={userEmail} onChange={(e) => setUserEmail(e.target.value)} placeholder="nama@email.com" required />
-        <button className="primary full" type="submit" disabled={userSaving}>{userSaving ? "Menyimpan..." : userModal.mode === "edit" ? "Simpan Perubahan" : "Kirim Undangan"}</button>
+        {userModal.mode === "edit" && <>
+          <label>Password baru (opsional)</label><input type="password" value={userPassword} onChange={(e) => setUserPassword(e.target.value)} placeholder="Kosongkan jika tidak diubah" autoComplete="new-password" minLength={8} />
+          <small>Password minimal 8 karakter. Password lama tetap berlaku jika kolom ini dikosongkan.</small>
+        </>}
+        <button className="primary full" type="submit" disabled={userSaving || (userPassword.length > 0 && userPassword.length < 8)}>{userSaving ? "Menyimpan..." : userModal.mode === "edit" ? "Simpan Perubahan" : "Kirim Undangan"}</button>
       </form></div>}
       {showAdd && <div className="modal-backdrop" onClick={() => setShowAdd(false)}><form className="modal" onSubmit={addAccount} onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" type="button" onClick={() => setShowAdd(false)}><X size={18}/></button><h2>Tambah Akun YouTube</h2><p>{isDesktop ? "Data ini memberi label pada profil browser baru. Login Google dilakukan langsung di browser YouTube." : "Data akun disimpan di dashboard. Sesi browser YouTube terpisah dibuat melalui aplikasi Windows."}</p>
