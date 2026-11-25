@@ -68,11 +68,23 @@ export default function App() {
 
   const loadAccounts = useCallback(async () => {
     if (!supabase || !session?.user) return;
-    const { data, error } = await supabase.from("yt_accounts").select("*").order("created_at", { ascending: true });
-    if (error) { console.error(error); return; }
-    setAccounts(data || []);
-    if (!selected && data?.length) setSelected(data[0]);
-  }, [session, selected]);
+    let rows = [];
+    if (isAdmin) {
+      try {
+        const result = await manageAppUsers("list_accounts");
+        rows = result.accounts || [];
+      } catch (error) {
+        console.error("Gagal memuat seluruh akun YouTube:", error);
+        return;
+      }
+    } else {
+      const { data, error } = await supabase.from("yt_accounts").select("*").eq("user_id", session.user.id).order("created_at", { ascending: true });
+      if (error) { console.error(error); return; }
+      rows = data || [];
+    }
+    setAccounts(rows);
+    if (!selected && rows.length) setSelected(rows[0]);
+  }, [session, selected, isAdmin]);
 
   useEffect(() => { loadAccounts(); }, [loadAccounts]);
   useEffect(() => { if (page === "Pengaturan" && isAdmin) loadAppUsers(); }, [page, isAdmin]);
@@ -123,7 +135,7 @@ export default function App() {
   }, [session?.user?.id]);
 
   useEffect(() => {
-    if (page === "Dashboard" && selected && window.ytm) {
+    if (page === "Dashboard" && selected && window.ytm && selected.user_id === session?.user?.id) {
       window.ytm.openAccountBrowser(selected.browser_profile_id, "https://www.youtube.com").catch(console.error);
     } else if (page !== "Dashboard") {
       window.ytm?.hideBrowser();
@@ -319,6 +331,11 @@ export default function App() {
 
   async function openAccount(account) {
     if (!account) return;
+    if (isAdmin && account.user_id !== session?.user?.id) {
+      setSelected(account);
+      setPage("Dashboard");
+      return;
+    }
     const alreadyActiveOnDashboard = selected?.id === account.id && page === "Dashboard";
     setSelected(account);
     setPage("Dashboard");
@@ -634,8 +651,8 @@ export default function App() {
         <div className="search-row"><div className="search-box"><Search size={18}/><input placeholder="Cari nama atau email..." value={search} onChange={(e) => setSearch(e.target.value)}/></div><button className="filter-button" title="Filter"><Filter size={18}/></button></div>
         <div className="account-list">
           {filteredAccounts.map((account) => <div key={account.id} className={selected?.id === account.id ? "account-item selected" : "account-item"} onClick={() => openAccount(account)}>
-            <div className="avatar">{initials(account.display_name)}</div><div className="account-meta"><strong>{account.display_name}</strong><span>{account.email || "Email belum diisi"}</span></div>
-            <span className={account.account_status === "logged_in" ? "login-status logged-in" : "login-status"}><i/>{account.account_status ? `${account.account_status === "logged_in" ? "Aktif" : "Logout"}` : "Belum diuji"}</span><button className="more-button" onClick={(e) => { e.stopPropagation(); removeAccount(account); }} title="Hapus">⋮</button>
+            <div className="avatar">{initials(account.display_name)}</div><div className="account-meta"><strong>{account.display_name}</strong><span>{account.email || "Email belum diisi"}</span>{isAdmin && <small>Pemilik: {account.owner_email || "Tidak diketahui"}</small>}</div>
+            <span className={account.account_status === "logged_in" ? "login-status logged-in" : "login-status"}><i/>{account.account_status === "logged_in" ? "Aktif" : account.account_status === "logged_out" ? "Belum login" : "Belum diverifikasi"}</span>{(!isAdmin || account.user_id === session.user.id) && <button className="more-button" onClick={(e) => { e.stopPropagation(); removeAccount(account); }} title="Hapus">⋮</button>}
           </div>)}
           {!filteredAccounts.length && <div className="empty-state">Belum ada akun. Tambahkan akun YouTube untuk memulai.</div>}
         </div>
@@ -713,7 +730,7 @@ export default function App() {
         <>
         <div className="browser-toolbar">
           <div className="browser-title"><Globe size={18}/>{isDesktop ? "Browser" : "Web Dashboard"}</div>
-          {isDesktop ? <><button className="browser-control" onClick={() => window.ytm.browserBack()}><ArrowLeft size={18}/></button><button className="browser-control" onClick={() => window.ytm.browserForward()}><ArrowRight size={18}/></button><button className="browser-control" onClick={() => window.ytm.browserReload()}><RefreshCw size={18}/></button><form className="address-bar" onSubmit={(e) => { e.preventDefault(); navigate(); }}><span>🔒</span><input value={address} onChange={(e) => setAddress(e.target.value)} /></form><div className="active-session"><i/>{selected ? `Sesi: ${selected.display_name}` : "Belum ada sesi"}</div><button className="browser-control login-test-button" disabled={!selected || loginChecking || browserState.loading} onClick={testProfileLogin} title="Uji status login YouTube">{loginChecking ? "Menguji..." : "Uji Login"}</button></> : <div className="active-session">{isAndroidApp ? "Mode Android · dashboard tersinkron" : "Mode web · login YouTube hanya di aplikasi Windows"}</div>}
+          {isDesktop ? <><button className="browser-control" onClick={() => window.ytm.browserBack()}><ArrowLeft size={18}/></button><button className="browser-control" onClick={() => window.ytm.browserForward()}><ArrowRight size={18}/></button><button className="browser-control" onClick={() => window.ytm.browserReload()}><RefreshCw size={18}/></button><form className="address-bar" onSubmit={(e) => { e.preventDefault(); navigate(); }}><span>🔒</span><input value={address} onChange={(e) => setAddress(e.target.value)} /></form><div className="active-session"><i/>{selected ? `Sesi: ${selected.display_name}` : "Belum ada sesi"}</div><button className="browser-control login-test-button" disabled={!selected || selected.user_id !== session.user.id || loginChecking || browserState.loading} onClick={testProfileLogin} title="Uji status login YouTube">{loginChecking ? "Menguji..." : "Uji Login"}</button></> : <div className="active-session">{isAndroidApp ? "Mode Android · dashboard tersinkron" : "Mode web · login YouTube hanya di aplikasi Windows"}</div>}
         </div>
         <div className="browser-viewport" ref={browserPaneRef}>
           {!isDesktop ? (
@@ -725,7 +742,7 @@ export default function App() {
                     <div><span className="web-detail-eyebrow">AKUN TERPILIH</span><h2>{selected.display_name}</h2><p>{selected.email || "Email belum diisi"}</p></div>
                   </div>
                   <div className="web-detail-grid">
-                    <div><span>Status terakhir</span><strong>{selected.account_status === "logged_in" ? "Aktif" : selected.account_status === "logged_out" ? "Logout" : "Belum diuji"}</strong></div>
+                    <div><span>Status terakhir</span><strong>{selected.account_status === "logged_in" ? "Aktif" : selected.account_status === "logged_out" ? "Belum login" : "Belum diverifikasi"}</strong></div>
                     <div><span>Ditambahkan</span><strong>{selected.created_at ? new Date(selected.created_at).toLocaleString("id-ID") : "—"}</strong></div>
                   </div>
                   <div className="web-browser-notice">
