@@ -135,12 +135,16 @@ export default function App() {
   }, [session?.user?.id]);
 
   useEffect(() => {
-    if (page === "Dashboard" && selected && window.ytm && selected.user_id === session?.user?.id) {
-      window.ytm.openAccountBrowser(selected.browser_profile_id, "https://www.youtube.com").catch(console.error);
+    if (page === "Dashboard" && selected && window.ytm) {
+      if (selected.user_id === session?.user?.id) {
+        window.ytm.openAccountBrowser(selected.browser_profile_id, "https://www.youtube.com").catch(console.error);
+      } else {
+        window.ytm.hideBrowser();
+      }
     } else if (page !== "Dashboard") {
       window.ytm?.hideBrowser();
     }
-  }, [page, selected?.id]);
+  }, [page, selected?.id, session?.user?.id]);
 
   useEffect(() => {
     if (!session?.user?.id || !supabase) return;
