@@ -70,8 +70,26 @@ export default function App() {
       if (error) {
         console.error("Gagal memuat pengaturan channel:", error);
         setSettingsMessage("Pengaturan channel gagal dimuat dari server.");
+      } else if (data?.target_channel_url) {
+        setTargetChannelUrl(data.target_channel_url);
       } else {
-        setTargetChannelUrl(data?.target_channel_url || "");
+        const legacyUrl = window.localStorage.getItem("ytm-target-channel-url") || "";
+        setTargetChannelUrl(legacyUrl);
+        if (legacyUrl) {
+          const { error: migrationError } = await supabase.from("yt_user_settings").upsert({
+            user_id: session.user.id,
+            target_channel_url: legacyUrl,
+            updated_at: new Date().toISOString()
+          }, { onConflict: "user_id" });
+          if (!active) return;
+          if (migrationError) {
+            console.error("Migrasi link channel gagal:", migrationError);
+            setSettingsMessage("Link lama masih tersimpan di perangkat ini; simpan ulang untuk sinkronisasi.");
+          } else {
+            window.localStorage.removeItem("ytm-target-channel-url");
+            setSettingsMessage("Link channel lama berhasil dipindahkan ke Supabase.");
+          }
+        }
       }
       setSettingsLoading(false);
     }
