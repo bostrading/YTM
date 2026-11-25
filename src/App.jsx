@@ -31,6 +31,10 @@ export default function App() {
   const [loginResults, setLoginResults] = useState({});
   const [address, setAddress] = useState("https://www.youtube.com");
   const [targetChannelUrl, setTargetChannelUrl] = useState("");
+  const [targetVideoUrl, setTargetVideoUrl] = useState("");
+  const [videoTaskStatus, setVideoTaskStatus] = useState("idle");
+  const [videoTaskMessage, setVideoTaskMessage] = useState("");
+  const [activeTask, setActiveTask] = useState(null);
   const [settingsMessage, setSettingsMessage] = useState("");
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
@@ -66,15 +70,16 @@ export default function App() {
       setSettingsLoading(true);
       const { data, error } = await supabase
         .from("yt_user_settings")
-        .select("target_channel_url")
+        .select("target_channel_url, target_video_url")
         .eq("user_id", session.user.id)
         .maybeSingle();
       if (!active) return;
       if (error) {
         console.error("Gagal memuat pengaturan channel:", error);
         setSettingsMessage("Pengaturan channel gagal dimuat dari server.");
-      } else if (data?.target_channel_url) {
-        setTargetChannelUrl(data.target_channel_url);
+      } else if (data) {
+        setTargetChannelUrl(data.target_channel_url || "");
+        setTargetVideoUrl(data.target_video_url || "");
       } else {
         const legacyUrl = window.localStorage.getItem("ytm-target-channel-url") || "";
         setTargetChannelUrl(legacyUrl);
@@ -120,8 +125,9 @@ export default function App() {
       }, (payload) => {
         if (payload.eventType === "DELETE") {
           setTargetChannelUrl("");
-        } else if (payload.new?.target_channel_url !== undefined) {
-          setTargetChannelUrl(payload.new.target_channel_url || "");
+        } else {
+          if (payload.new?.target_channel_url !== undefined) setTargetChannelUrl(payload.new.target_channel_url || "");
+          if (payload.new?.target_video_url !== undefined) setTargetVideoUrl(payload.new.target_video_url || "");
         }
       })
       .subscribe();
@@ -335,6 +341,7 @@ export default function App() {
   }
 
   async function openTargetChannel() {
+    if (activeTask && activeTask !== "subscribe") { setSettingsMessage("Selesaikan tugas Jam Tayang terlebih dahulu."); return; }
     if (!targetChannelUrl.trim()) { setSettingsMessage("Simpan link channel tujuan terlebih dahulu."); return; }
     if (!selected) { setSettingsMessage("Pilih akun terlebih dahulu."); return; }
     if (!isDesktop) { setSettingsMessage("Buka channel tujuan melalui aplikasi YT Manager Windows."); return; }
@@ -346,10 +353,75 @@ export default function App() {
         description: `Channel tujuan dibuka secara manual: ${targetChannelUrl.trim()}`
       });
       setAddress(targetChannelUrl.trim());
-      setSettingsMessage(`Channel tujuan dibuka pada profil ${selected.display_name}. Aktivitas menonton dan subscribe tetap dilakukan manual.`);
+      setActiveTask("subscribe");
+      setSettingsMessage(`Channel tujuan dibuka pada profil ${selected.display_name}. Aktivitas Subscribe dilakukan manual.`);
     } catch (error) {
       setSettingsMessage(error.message || "Channel tujuan gagal dibuka.");
     }
+  }
+
+  async function saveTargetVideo() {
+    const value = targetVideoUrl.trim();
+    try {
+      const parsed = new URL(value);
+      if (parsed.protocol !== "https:" || !["youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"].includes(parsed.hostname)) {
+        setVideoTaskMessage("Masukkan URL video YouTube yang valid.");
+        return;
+      }
+    } catch {
+      setVideoTaskMessage("URL video belum valid. Gunakan tautan lengkap https://.");
+      return;
+    }
+    const { error } = await supabase.from("yt_user_settings").upsert({
+      user_id: session.user.id,
+      target_video_url: value,
+      updated_at: new Date().toISOString()
+    }, { onConflict: "user_id" });
+    if (error) { setVideoTaskMessage("Gagal menyimpan link video: " + error.message); return; }
+    setVideoTaskMessage("Link video berhasil disimpan dan tersinkron melalui Supabase.");
+  }
+
+  async function openTargetVideo() {
+    if (activeTask && activeTask !== "watch") {
+      setVideoTaskMessage("Selesaikan sesi Subscribe terlebih dahulu. Kedua tab tidak dapat berjalan bersama.");
+      return;
+    }
+    if (!targetVideoUrl.trim()) { setVideoTaskMessage("Simpan link video terlebih dahulu."); return; }
+    if (!selected) { setVideoTaskMessage("Pilih akun terlebih dahulu."); return; }
+    if (!isDesktop) { setVideoTaskMessage("Buka video melalui aplikasi YT Manager Windows."); return; }
+    try {
+      await window.ytm.openAccountBrowser(selected.browser_profile_id, targetVideoUrl.trim());
+      setAddress(targetVideoUrl.trim());
+      setActiveTask("watch");
+      setVideoTaskStatus("opened");
+      setVideoTaskMessage("Video dibuka pada profil " + selected.display_name + ". Pemutaran dan verifikasi selesai dilakukan manual.");
+      await supabase.from("yt_activity_logs").insert({
+        user_id: session.user.id, account_id: selected.id,
+        event_type: "watch_video_opened",
+        description: "Video dibuka manual: " + targetVideoUrl.trim()
+      });
+    } catch (error) {
+      setVideoTaskMessage(error.message || "Video gagal dibuka.");
+    }
+  }
+
+  async function completeManualTask(task) {
+    if (activeTask !== task) {
+      setVideoTaskMessage("Tidak ada sesi yang sedang aktif.");
+      return;
+    }
+    if (task === "watch") {
+      setVideoTaskStatus("completed");
+      setVideoTaskMessage("Status pemantauan ditandai selesai secara manual.");
+      await supabase.from("yt_activity_logs").insert({
+        user_id: session.user.id, account_id: selected?.id || null,
+        event_type: "watch_video_marked_complete",
+        description: "Pengguna menandai pemantauan video selesai secara manual."
+      });
+    } else {
+      setSettingsMessage("Sesi Subscribe ditutup.");
+    }
+    setActiveTask(null);
   }
 
   if (!session) return (
@@ -375,7 +447,7 @@ export default function App() {
       </header>
       <aside className="sidebar">
         <nav>
-          {[["Dashboard", Home], ["Pengaturan", Settings]].map(([label, Icon]) =>
+          {[["Dashboard", Home], ["Subscribe", Users], ["Jam Tayang", Globe], ["Pengaturan", Settings]].map(([label, Icon]) =>
             <button key={label} className={page === label ? "nav-item active" : "nav-item"} onClick={() => setPage(label)}><Icon size={19}/>{label}</button>
           )}
         </nav>
@@ -396,28 +468,45 @@ export default function App() {
         <div className="user-foot"><ShieldCheck size={16}/><span>{session.user.email}</span></div>
       </section>
       <main className="browser-panel">
-        {page === "Pengaturan" ? (
+        {page === "Pengaturan" || page === "Subscribe" || page === "Jam Tayang" ? (
           <div className="settings-view">
-            <h2>Pengaturan Channel</h2>
-            <p className="settings-description">Atur channel tujuan untuk sesi riset. Link disimpan di Supabase dan tersedia pada perangkat lain setelah login dengan akun yang sama.</p>
-            <section className="settings-card channel-target-card">
-              <div className="settings-card-content">
+            {page === "Subscribe" ? <>
+              <h2>Subscribe</h2>
+              <p className="settings-description">Masukkan link channel tujuan. Sesi Subscribe dilakukan manual dan terpisah dari Jam Tayang.</p>
+              <section className="settings-card channel-target-card"><div className="settings-card-content">
                 <strong>Link Channel Tujuan</strong>
-                <p>Masukkan URL channel YouTube yang ingin diperiksa.</p>
                 <input className="target-channel-input" type="url" value={targetChannelUrl} onChange={(e) => { setTargetChannelUrl(e.target.value); setSettingsMessage(""); }} placeholder="https://www.youtube.com/@nama-channel" />
                 <div className="settings-actions">
-                  <button className="primary settings-action-button" onClick={saveTargetChannel} disabled={settingsLoading || settingsSaving}>{settingsSaving ? "Menyimpan..." : settingsLoading ? "Memuat..." : "Simpan Link"}</button>
-                  <button className="secondary-action settings-action-button" onClick={startRandomRound} disabled={!accounts.length}>Mulai Putaran Acak</button>
-                  <button className="secondary-action settings-action-button" onClick={chooseNextRandomAccount} disabled={!randomQueue.length || queueIndex >= randomQueue.length}>Akun Berikutnya</button>
-                  <button className="secondary-action settings-action-button" onClick={openTargetChannel} disabled={!selected || !targetChannelUrl.trim()}>Buka Channel Tujuan</button>
+                  <button className="primary settings-action-button" onClick={saveTargetChannel} disabled={settingsLoading || settingsSaving}>{settingsSaving ? "Menyimpan..." : "Simpan Link"}</button>
+                  <button className="secondary-action settings-action-button" onClick={startRandomRound} disabled={!accounts.length || activeTask === "watch"}>Mulai Putaran Acak</button>
+                  <button className="secondary-action settings-action-button" onClick={chooseNextRandomAccount} disabled={!randomQueue.length || queueIndex >= randomQueue.length || activeTask === "watch"}>Akun Berikutnya</button>
+                  <button className="secondary-action settings-action-button" onClick={openTargetChannel} disabled={!selected || !targetChannelUrl.trim() || activeTask === "watch"}>Buka Channel Tujuan</button>
+                  {activeTask === "subscribe" && <button className="secondary-action settings-action-button" onClick={() => completeManualTask("subscribe")}>Selesaikan Sesi</button>}
                 </div>
                 {settingsMessage && <div className="settings-feedback">{settingsMessage}</div>}
                 {queueMessage && <div className="settings-feedback">{queueMessage}</div>}
                 <div className="settings-current-account">Akun terpilih: <strong>{selected?.display_name || "Belum ada akun"}</strong></div>
-                <div className="settings-current-account">Progres putaran: <strong>{queueIndex < 0 ? "Belum dimulai" : `${Math.min(queueIndex + 1, randomQueue.length)} / ${randomQueue.length} akun`}</strong></div>
-              </div>
-            </section>
-            <div className="settings-safety-note">Sesi riset dijalankan secara manual. YT Manager tidak menjalankan tontonan, Subscribe, atau interaksi massal secara otomatis.</div>
+                <div className="settings-current-account">Progres putaran akun: <strong>{queueIndex < 0 ? "Belum dimulai" : `${Math.min(queueIndex + 1, randomQueue.length)} / ${randomQueue.length}`}</strong></div>
+                {activeTask === "watch" && <div className="settings-feedback">Jam Tayang sedang aktif. Selesaikan sesi tersebut sebelum memulai Subscribe.</div>}
+              </div></section>
+            </> : page === "Jam Tayang" ? <>
+              <h2>Jam Tayang</h2>
+              <p className="settings-description">Masukkan link video untuk pemantauan. Tab ini tidak memiliki fitur Subscribe dan tidak berjalan bersamaan dengan tab Subscribe.</p>
+              <section className="settings-card channel-target-card"><div className="settings-card-content">
+                <strong>Link Video YouTube</strong>
+                <input className="target-channel-input" type="url" value={targetVideoUrl} onChange={(e) => { setTargetVideoUrl(e.target.value); setVideoTaskMessage(""); }} placeholder="https://www.youtube.com/watch?v=..." />
+                <div className="settings-actions">
+                  <button className="primary settings-action-button" onClick={saveTargetVideo}>Simpan Link Video</button>
+                  <button className="secondary-action settings-action-button" onClick={openTargetVideo} disabled={!selected || !targetVideoUrl.trim() || activeTask === "subscribe"}>Buka Video</button>
+                  {activeTask === "watch" && <button className="secondary-action settings-action-button" onClick={() => completeManualTask("watch")}>Tandai Selesai</button>}
+                </div>
+                {videoTaskMessage && <div className="settings-feedback">{videoTaskMessage}</div>}
+                <div className="settings-current-account">Akun yang digunakan: <strong>{selected?.display_name || "Belum ada akun"}</strong></div>
+                <div className="settings-current-account">Status pemantauan: <strong>{videoTaskStatus === "completed" ? "Selesai (ditandai manual)" : videoTaskStatus === "opened" ? "Video dibuka" : "Belum dimulai"}</strong></div>
+                {activeTask === "subscribe" && <div className="settings-feedback">Sesi Subscribe sedang aktif. Selesaikan sesi tersebut sebelum membuka Jam Tayang.</div>}
+              </div></section>
+              <div className="settings-safety-note">YT Manager tidak memutar video otomatis atau mengklaim durasi tontonan. Pengguna membuka dan memverifikasi video secara manual.</div>
+            </> : <><h2>Pengaturan</h2><p className="settings-description">Pengaturan aplikasi dan akun.</p></>}
           </div>
         ) : (
         <>
