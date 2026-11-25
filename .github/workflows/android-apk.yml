@@ -7,6 +7,7 @@ on:
       - "src/**"
       - "android-native/**"
       - "public/**"
+      - "scripts/**"
       - "index.html"
       - "package.json"
       - "capacitor.config.json"
@@ -46,6 +47,9 @@ jobs:
 
       - name: Sync Capacitor
         run: npx cap sync android
+
+      - name: Generate Kubang YT app icons
+        run: node scripts/generate-brand-assets.cjs --android
 
       - name: Install native Android browser
         run: |
