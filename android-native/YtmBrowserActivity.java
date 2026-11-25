@@ -5,7 +5,6 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
-import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -15,9 +14,12 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 import android.graphics.Typeface;
+import androidx.webkit.Profile;
+import androidx.webkit.ProfileStore;
+import androidx.webkit.WebViewCompat;
+import androidx.webkit.WebViewFeature;
 
 public class YtmBrowserActivity extends Activity {
     private WebView webView;
@@ -27,15 +29,26 @@ public class YtmBrowserActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        String rawProfileId = getIntent().getStringExtra("profileId");
+        if (rawProfileId == null || rawProfileId.trim().isEmpty()) {
+            Toast.makeText(this, "Profil akun tidak ditemukan. Browser tidak dibuka.", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)) {
+            Toast.makeText(this, "WebView perangkat belum mendukung sesi multi-akun. Perbarui Android System WebView melalui Play Store.", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
         getWindow().setStatusBarColor(Color.rgb(18, 24, 38));
         getWindow().setNavigationBarColor(Color.BLACK);
-        buildBrowser();
+        buildBrowser(rawProfileId);
         String initialUrl = getIntent().getStringExtra("url");
         if (initialUrl == null || initialUrl.isEmpty()) initialUrl = "https://www.youtube.com";
         loadAddress(initialUrl);
     }
 
-    private void buildBrowser() {
+    private void buildBrowser(String rawProfileId) {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.WHITE);
@@ -83,7 +96,9 @@ public class YtmBrowserActivity extends Activity {
         root.addView(progress, new LinearLayout.LayoutParams(-1, dp(3)));
 
         webView = new WebView(this);
-        webView.setBackgroundColor(Color.WHITE);
+        String profileName = "account_" + rawProfileId.replaceAll("[^A-Za-z0-9_-]", "_");
+        Profile profile = ProfileStore.getInstance().getOrCreateProfile(profileName);
+        WebViewCompat.setProfile(webView, profileName);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -94,9 +109,8 @@ public class YtmBrowserActivity extends Activity {
         settings.setJavaScriptCanOpenWindowsAutomatically(false);
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
-        CookieManager cookies = CookieManager.getInstance();
-        cookies.setAcceptCookie(true);
-        cookies.setAcceptThirdPartyCookies(webView, true);
+        profile.getCookieManager().setAcceptCookie(true);
+        profile.getCookieManager().setAcceptThirdPartyCookies(webView, true);
         webView.setWebChromeClient(new WebChromeClient() {
             @Override public void onProgressChanged(WebView view, int newProgress) {
                 progress.setProgress(newProgress);
@@ -113,7 +127,7 @@ public class YtmBrowserActivity extends Activity {
             }
             @Override public void onPageFinished(WebView view, String url) {
                 address.setText(url);
-                CookieManager.getInstance().flush();
+                profile.getCookieManager().flush();
             }
         });
         root.addView(webView, new LinearLayout.LayoutParams(-1, 0, 1));
