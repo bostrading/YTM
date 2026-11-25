@@ -60,6 +60,11 @@ jobs:
           cp android-native/YtmBrowserActivity.java "$APP_JAVA/YtmBrowserActivity.java"
           python3 - <<'PY'
           from pathlib import Path
+          gradle = Path("android/app/build.gradle")
+          content = gradle.read_text()
+          if "androidx.webkit:webkit" not in content:
+              content = content.replace("dependencies {", 'dependencies {\\n    implementation "androidx.webkit:webkit:1.9.0"', 1)
+              gradle.write_text(content)
           manifest = Path("android/app/src/main/AndroidManifest.xml")
           content = manifest.read_text()
           activity = '''
@@ -71,10 +76,9 @@ jobs:
                       android:theme="@android:style/Theme.Material.Light.NoActionBar" />
           '''
           if ".YtmBrowserActivity" not in content:
-              content = content.replace("</application>", activity + "\n    </application>")
+              content = content.replace("</application>", activity + "\\n    </application>")
               manifest.write_text(content)
           PY
-
       - name: Restore stable Android signing key
         uses: actions/cache@v4
         with:
