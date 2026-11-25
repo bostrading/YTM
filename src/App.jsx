@@ -635,7 +635,7 @@ export default function App() {
   );
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${isAndroidApp ? " android-app-shell" : ""}`}>
       <header className="topbar">
         <div className="brand"><img className="brand-logo" src="/kubang-yt-icon.svg" alt="" /><div><strong>Kubang YT</strong><span>Multi Account Dashboard</span></div></div>
         <div className="system-status"><i />System Online</div>
