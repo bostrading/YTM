@@ -80,3 +80,91 @@
   .web-detail-grid{gap:8px;margin:12px 0}.web-detail-grid>div{padding:11px}
   .app-user-row{flex-wrap:wrap}.app-user-actions{margin-left:auto}
 }
+
+
+/* Kubang YT Android — premium black & gold mobile experience */
+@media(max-width:640px){
+  .android-app-shell{
+    background:#08090c;
+    color:#f7f3e9;
+    grid-template-rows:64px minmax(150px,26dvh) minmax(0,1fr) 68px;
+    gap:0;
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  .android-app-shell .topbar{
+    grid-row:1;background:linear-gradient(115deg,#171717,#090909);
+    border:0;border-bottom:1px solid #8b6a25;border-radius:0;
+    box-shadow:0 5px 20px #0008;
+  }
+  .android-app-shell .brand strong{color:#f4d27a;letter-spacing:.2px}
+  .android-app-shell .brand span{color:#b6a77f}
+  .android-app-shell .brand-logo{filter:drop-shadow(0 2px 9px #d4a83d55)}
+  .android-app-shell .system-status{color:#d7c99f}
+  .android-app-shell .system-status i{background:#d8ad4b;box-shadow:0 0 8px #d8ad4b88}
+  .android-app-shell .account-panel{
+    grid-column:1;grid-row:2;background:#101012;
+    border-bottom:1px solid #3c321e;padding:12px 12px 9px;
+  }
+  .android-app-shell .panel-heading h2{color:#f4e6c1;font-size:15px}
+  .android-app-shell .count-pill{background:#302718;border:1px solid #725923;color:#f2d58b}
+  .android-app-shell .search-box{background:#1a1a1c;border-color:#514326;color:#d6c69e}
+  .android-app-shell .search-box input{color:#fff}
+  .android-app-shell .filter-button{background:#282116;color:#e8c66e;border:1px solid #655024}
+  .android-app-shell .account-list{gap:6px}
+  .android-app-shell .account-item{background:#171719;border:1px solid #29251d;border-radius:11px;min-height:48px}
+  .android-app-shell .account-item.selected{background:linear-gradient(100deg,#332817,#211d15);border-color:#b38a35;box-shadow:inset 3px 0 #d8ad4b}
+  .android-app-shell .avatar{background:linear-gradient(145deg,#d6ad55,#72501d);color:#17120a;font-weight:800}
+  .android-app-shell .account-meta strong{color:#f8edd0}
+  .android-app-shell .account-meta span{color:#b6aa91}
+  .android-app-shell .login-status{color:#c8bda5}
+  .android-app-shell .login-status.logged-in{color:#9bd6a9}
+  .android-app-shell .login-status i{background:#a18c60}
+  .android-app-shell .login-status.logged-in i{background:#53c879}
+  .android-app-shell .primary{background:linear-gradient(100deg,#9a7028,#e2bd64);color:#171108;font-weight:750;border:1px solid #f0d58e}
+  .android-app-shell .add-account{height:36px;margin-top:7px}
+  .android-app-shell .browser-panel{
+    grid-column:1;grid-row:3;background:#090a0c;min-height:0;
+    border-radius:0;overflow:hidden;
+  }
+  .android-app-shell .settings-view{
+    background:radial-gradient(circle at 15% 0,#2a2112 0,transparent 48%),#0b0b0d;
+    color:#f4ecd9;padding:18px 14px;
+  }
+  .android-app-shell .settings-view h2{color:#f0d18a}
+  .android-app-shell .settings-description{color:#b7ad98}
+  .android-app-shell .channel-target-card,.android-app-shell .settings-card{
+    background:#171614;border-color:#5a4725;border-radius:14px;
+  }
+  .android-app-shell .settings-card-content>strong{color:#f5e5bd}
+  .android-app-shell .target-channel-input{background:#0d0d0e;border-color:#66532d;color:#fff}
+  .android-app-shell .secondary-action{background:#282116;border-color:#70582b;color:#efd99f}
+  .android-app-shell .progress-section{background:#171614;border-color:#5a4725}
+  .android-app-shell .progress-track{background:#3a3326}
+  .android-app-shell .progress-fill{background:linear-gradient(90deg,#9a7028,#f0cf76)}
+  .android-app-shell .video-progress-fill{background:linear-gradient(90deg,#b08a3e,#e9cb7b)}
+  .android-app-shell .sidebar{
+    grid-column:1;grid-row:4;z-index:8;position:relative;
+    display:flex;flex-direction:row;align-items:center;justify-content:space-around;
+    gap:0;padding:5px 7px calc(5px + env(safe-area-inset-bottom,0px));
+    background:#101012;border-top:1px solid #705726;overflow:visible;
+    box-shadow:0 -8px 24px #0009;
+  }
+  .android-app-shell .sidebar nav{display:flex;flex:1;justify-content:space-around;gap:2px;min-width:0}
+  .android-app-shell .nav-item{
+    height:52px;min-width:0;flex:1;display:flex;flex-direction:column;
+    justify-content:center;align-items:center;gap:4px;padding:3px 2px;
+    border-radius:9px;background:transparent;color:#a99d82;
+    font-size:9px;font-weight:600;white-space:nowrap;
+  }
+  .android-app-shell .nav-item svg{width:19px;height:19px;color:inherit}
+  .android-app-shell .nav-item.active{
+    background:linear-gradient(180deg,#332817,#211b11);
+    color:#f0ce78;box-shadow:inset 0 0 0 1px #705726;
+  }
+  .android-app-shell .logout-button{
+    margin:0 0 0 4px;width:42px;height:48px;justify-content:center;
+    padding:0;color:#b7a67f;border-left:1px solid #3d321f;font-size:0;
+  }
+  .android-app-shell .logout-button svg{width:18px;height:18px}
+  .android-app-shell .user-foot{display:none}
+}
