@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import {
-  Activity, ArrowLeft, ArrowRight, Bell, CheckCircle2, ChevronDown, CircleHelp,
-  Clock3, Filter, Globe, Home, LogOut, Menu, Plus, RefreshCw, Search, Settings,
+  ArrowLeft, ArrowRight, Bell, CheckCircle2, ChevronDown, CircleHelp,
+  Filter, Globe, Home, LogOut, Menu, Plus, RefreshCw, Search, Settings,
   ShieldCheck, Users, X
 } from "lucide-react";
 
@@ -29,7 +29,6 @@ export default function App() {
   const [browserState, setBrowserState] = useState({ url: "https://www.youtube.com", loading: false });
   const [loginChecking, setLoginChecking] = useState(false);
   const [loginResults, setLoginResults] = useState({});
-  const [activityLogs, setActivityLogs] = useState([]);
   const [address, setAddress] = useState("https://www.youtube.com");
   const browserPaneRef = useRef(null);
 
@@ -57,13 +56,6 @@ export default function App() {
       window.ytm?.hideBrowser();
     }
   }, [page, selected?.id]);
-
-  useEffect(() => {
-    if (page !== "Riwayat Aktivitas" || !supabase || !session?.user) return;
-    supabase.from("yt_activity_logs").select("id,event_type,description,created_at,yt_accounts(display_name)")
-      .order("created_at", { ascending: false }).limit(100)
-      .then(({ data, error }) => { if (!error) setActivityLogs(data || []); });
-  }, [page, session]);
 
   useEffect(() => {
     const updateBounds = () => {
@@ -211,7 +203,7 @@ export default function App() {
       </header>
       <aside className="sidebar">
         <nav>
-          {[["Dashboard", Home], ["Semua Akun", Users], ["Riwayat Aktivitas", Clock3], ["Pengaturan", Settings]].map(([label, Icon]) =>
+          {[["Dashboard", Home], ["Pengaturan", Settings]].map(([label, Icon]) =>
             <button key={label} className={page === label ? "nav-item active" : "nav-item"} onClick={() => setPage(label)}><Icon size={19}/>{label}</button>
           )}
         </nav>
@@ -219,7 +211,7 @@ export default function App() {
         <button className="logout-button" onClick={logout}><LogOut size={16}/>Keluar</button>
       </aside>
       <section className="account-panel">
-        <div className="panel-heading"><h2>{page === "Semua Akun" ? "Semua Akun YouTube" : "Daftar Akun YouTube"}</h2><span className="count-pill">{accounts.length} Akun</span></div>
+        <div className="panel-heading"><h2>Daftar Akun YouTube</h2><span className="count-pill">{accounts.length} Akun</span></div>
         <div className="search-row"><div className="search-box"><Search size={18}/><input placeholder="Cari nama atau email..." value={search} onChange={(e) => setSearch(e.target.value)}/></div><button className="filter-button" title="Filter"><Filter size={18}/></button></div>
         <div className="account-list">
           {filteredAccounts.map((account) => <div key={account.id} className={selected?.id === account.id ? "account-item selected" : "account-item"} onClick={() => openAccount(account)}>
