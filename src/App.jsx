@@ -778,7 +778,7 @@ export default function App() {
                   </div>
                   <div className="web-browser-notice">
                     <Globe size={20}/>
-                    <div><strong>{isAndroidApp ? "Browser YouTube Android" : "Browser YouTube tidak tersedia di website"}</strong><p>{isAndroidApp ? "Browser internal Android menggunakan profil WebView terpisah untuk setiap akun. Login dan cookie tidak dibagikan antar akun. Perlu Android System WebView yang mendukung multi-profile." : "Pemilihan akun berhasil. Untuk membuka YouTube dan login menggunakan sesi profil ini, jalankan aplikasi Kubang YT di Windows lalu pilih akun yang sama."}</p>{isAndroidApp && <button className="primary settings-action-button" onClick={openAndroidHome}>Buka Browser YouTube</button>}</div>
+                    <div><strong>{isAndroidApp ? "Browser YouTube Android" : "Browser YouTube tidak tersedia di website"}</strong><p>{isAndroidApp ? "Pada Android 7, WebView masih memakai sesi bersama sehingga login dan cookie belum dapat dipisahkan secara aman per akun. Jangan login akun berbeda di browser ini sampai dukungan profil terisolasi tersedia." : "Pemilihan akun berhasil. Untuk membuka YouTube dan login menggunakan sesi profil ini, jalankan aplikasi Kubang YT di Windows lalu pilih akun yang sama."}</p>{isAndroidApp && <button className="primary settings-action-button" onClick={openAndroidHome}>Buka Browser YouTube</button>}</div>
                   </div>
                 </>
               ) : (
@@ -803,7 +803,7 @@ export default function App() {
         <button className="primary full" type="submit" disabled={userSaving || (userPassword.length > 0 && userPassword.length < 8)}>{userSaving ? "Menyimpan..." : userModal.mode === "edit" ? "Simpan Perubahan" : "Kirim Undangan"}</button>
       </form></div>}
       {showAdd && <div className="modal-backdrop" onClick={() => setShowAdd(false)}><form className="modal" onSubmit={addAccount} onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" type="button" onClick={() => setShowAdd(false)}><X size={18}/></button><h2>Tambah Akun YouTube</h2><p>{isDesktop ? "Data ini memberi label pada profil browser baru. Login Google dilakukan langsung di browser YouTube." : "Data akun disimpan di dashboard. Sesi browser YouTube terpisah dibuat melalui aplikasi Windows."}</p>
+        <button className="modal-close" type="button" onClick={() => setShowAdd(false)}><X size={18}/></button><h2>Tambah Akun YouTube</h2><p>{isDesktop ? "Data ini menyimpan identitas akun. Login Google dilakukan langsung di YouTube." : "Data akun disimpan di Supabase. Pada Android 7, browser internal masih memakai sesi bersama dan belum mendukung login terpisah per akun."}</p>
         <label>Nama akun</label><div className="auto-name-preview">Account {String(Math.max(accounts.reduce((highest, account) => { const match = String(account.display_name || "").match(/(\d+)\s*$/); return match ? Math.max(highest, Number(match[1])) : highest; }, 0), accounts.length) + 1).padStart(4, "0")}</div><small>Nomor akun dibuat otomatis dan berurutan.</small>
         <label>Email (opsional)</label><input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="akun@gmail.com"/>
         <button className="primary full" type="submit">Buat Profil Browser</button>
