@@ -355,7 +355,8 @@ export default function App() {
   function navigate() { window.ytm?.navigateBrowser(address).catch((e) => alert(e.message)); }
 
   async function openAndroidHome() {
-    try { await YtmBrowser.open({ url: "https://www.youtube.com" }); }
+    try { if (!selected) throw new Error("Pilih akun YouTube terlebih dahulu.");
+      await YtmBrowser.open({ url: "https://www.youtube.com", profileId: selected.browser_profile_id || selected.id }); }
     catch (error) { alert(error.message || "Browser Android gagal dibuka."); }
   }
 
@@ -448,7 +449,7 @@ export default function App() {
     if (!selected) { setSettingsMessage("Pilih akun terlebih dahulu."); return; }
     if (!isDesktop && !isAndroidApp) { setSettingsMessage("Buka channel tujuan melalui aplikasi Kubang YT."); return; }
     try {
-      if (isAndroidApp) await YtmBrowser.open({ url: targetChannelUrl.trim() });
+      if (isAndroidApp) await YtmBrowser.open({ url: targetChannelUrl.trim(), profileId: selected.browser_profile_id || selected.id });
       else await window.ytm.openAccountBrowser(selected.browser_profile_id, targetChannelUrl.trim());
       await supabase?.from("yt_activity_logs").insert({
         user_id: session.user.id, account_id: selected.id,
@@ -549,7 +550,7 @@ export default function App() {
     if (!isDesktop && !isAndroidApp) { setVideoTaskMessage("Buka video melalui aplikasi Kubang YT."); return; }
     try {
       if (isAndroidApp) {
-        await YtmBrowser.open({ url: targetVideoUrl.trim() });
+        await YtmBrowser.open({ url: targetVideoUrl.trim(), profileId: selected.browser_profile_id || selected.id });
         setActiveTask("watch");
         setVideoTaskStatus("opened");
         setVideoProgress({ currentTime: 0, duration: 0, percent: null, paused: true, ended: false, available: false });
@@ -729,7 +730,7 @@ export default function App() {
                   </div>
                   <div className="web-browser-notice">
                     <Globe size={20}/>
-                    <div><strong>{isAndroidApp ? "Browser YouTube Android" : "Browser YouTube tidak tersedia di website"}</strong><p>{isAndroidApp ? "Browser internal tersedia di APK. Catatan: sesi login WebView masih digunakan bersama, belum terpisah untuk setiap akun." : "Pemilihan akun berhasil. Untuk membuka YouTube dan login menggunakan sesi profil ini, jalankan aplikasi Kubang YT di Windows lalu pilih akun yang sama."}</p>{isAndroidApp && <button className="primary settings-action-button" onClick={openAndroidHome}>Buka Browser YouTube</button>}</div>
+                    <div><strong>{isAndroidApp ? "Browser YouTube Android" : "Browser YouTube tidak tersedia di website"}</strong><p>{isAndroidApp ? "Browser internal Android menggunakan profil WebView terpisah untuk setiap akun. Login dan cookie tidak dibagikan antar akun. Perlu Android System WebView yang mendukung multi-profile." : "Pemilihan akun berhasil. Untuk membuka YouTube dan login menggunakan sesi profil ini, jalankan aplikasi Kubang YT di Windows lalu pilih akun yang sama."}</p>{isAndroidApp && <button className="primary settings-action-button" onClick={openAndroidHome}>Buka Browser YouTube</button>}</div>
                   </div>
                 </>
               ) : (
