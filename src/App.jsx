@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import {
   ArrowLeft, ArrowRight, Bell, CheckCircle2, ChevronDown, CircleHelp,
   Filter, Globe, Home, LogOut, Menu, Plus, RefreshCw, Search, Settings,
-  ShieldCheck, Users, X
+  ShieldCheck, Users, X, UserCog, Pencil, Ban, Trash2, Mail, RefreshCw as RefreshIcon
 } from "lucide-react";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://ciwghxpgvkdsszqezmbr.supabase.co";
@@ -41,6 +41,14 @@ export default function App() {
   const [randomQueue, setRandomQueue] = useState([]);
   const [queueIndex, setQueueIndex] = useState(-1);
   const [queueMessage, setQueueMessage] = useState("");
+  const isAdmin = session?.user?.email?.toLowerCase() === "admin@ytmsewu.com";
+  const [appUsers, setAppUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userModal, setUserModal] = useState(null);
+  const [userEmail, setUserEmail] = useState("");
+  const [userName, setUserName] = useState("");
+  const [userMessage, setUserMessage] = useState("");
+  const [userSaving, setUserSaving] = useState(false);
   const browserPaneRef = useRef(null);
 
   useEffect(() => {
@@ -59,6 +67,7 @@ export default function App() {
   }, [session, selected]);
 
   useEffect(() => { loadAccounts(); }, [loadAccounts]);
+  useEffect(() => { if (page === "Pengaturan" && isAdmin) loadAppUsers(); }, [page, isAdmin]);
 
   useEffect(() => {
     let active = true;
@@ -167,6 +176,65 @@ export default function App() {
     (a.display_name || "").toLowerCase().includes(search.toLowerCase()) ||
     (a.email || "").toLowerCase().includes(search.toLowerCase())
   ), [accounts, search]);
+
+  async function manageAppUsers(action, payload = {}) {
+    if (!supabase || !isAdmin) return;
+    const { data, error } = await supabase.functions.invoke("manage-app-users", {
+      body: { action, ...payload }
+    });
+    if (error) throw new Error(error.message || "Permintaan pengelolaan pengguna gagal.");
+    if (data?.error) throw new Error(data.error);
+    return data;
+  }
+
+  async function loadAppUsers() {
+    if (!isAdmin) return;
+    setUsersLoading(true);
+    setUserMessage("");
+    try {
+      const data = await manageAppUsers("list");
+      setAppUsers(data.users || []);
+    } catch (error) {
+      setUserMessage(error.message || "Daftar pengguna gagal dimuat.");
+    } finally { setUsersLoading(false); }
+  }
+
+  async function saveAppUser(e) {
+    e.preventDefault();
+    setUserSaving(true);
+    setUserMessage("");
+    try {
+      if (userModal?.mode === "edit") {
+        await manageAppUsers("update", { user_id: userModal.user.id, email: userEmail.trim(), display_name: userName.trim() });
+        setUserMessage("Data pengguna berhasil diperbarui.");
+      } else {
+        await manageAppUsers("invite", { email: userEmail.trim(), display_name: userName.trim() });
+        setUserMessage("Undangan berhasil dikirim ke " + userEmail.trim() + ".");
+      }
+      setUserModal(null); setUserEmail(""); setUserName("");
+      await loadAppUsers();
+    } catch (error) {
+      setUserMessage(error.message || "Perubahan pengguna gagal disimpan.");
+    } finally { setUserSaving(false); }
+  }
+
+  async function toggleAppUserBlock(user) {
+    const blocked = Boolean(user.banned_until && new Date(user.banned_until) > new Date());
+    if (!confirm(blocked ? `Buka blokir akses ${user.email}?` : `Blokir akses ${user.email}?`)) return;
+    try {
+      await manageAppUsers(blocked ? "unblock" : "block", { user_id: user.id });
+      await loadAppUsers();
+    } catch (error) { setUserMessage(error.message || "Status pengguna gagal diubah."); }
+  }
+
+  async function deleteAppUser(user) {
+    if (!confirm(`Hapus pengguna ${user.email} secara permanen? Tindakan ini tidak dapat dibatalkan.`)) return;
+    try {
+      await manageAppUsers("delete", { user_id: user.id });
+      setUserMessage("Pengguna berhasil dihapus.");
+      await loadAppUsers();
+    } catch (error) { setUserMessage(error.message || "Pengguna gagal dihapus."); }
+  }
 
   async function authenticate(e) {
     e.preventDefault(); setAuthError("");
@@ -506,7 +574,21 @@ export default function App() {
                 {activeTask === "subscribe" && <div className="settings-feedback">Sesi Subscribe sedang aktif. Selesaikan sesi tersebut sebelum membuka Jam Tayang.</div>}
               </div></section>
               <div className="settings-safety-note">YT Manager tidak memutar video otomatis atau mengklaim durasi tontonan. Pengguna membuka dan memverifikasi video secara manual.</div>
-            </> : <><h2>Pengaturan</h2><p className="settings-description">Pengaturan aplikasi dan akun.</p></>}
+            </> : <><h2>Pengaturan</h2><p className="settings-description">Pengaturan aplikasi dan akun.</p>
+              {isAdmin ? <section className="settings-card channel-target-card app-users-card">
+                <div className="app-users-heading"><div><strong><UserCog size={18}/> Pengguna Aplikasi</strong><p>Kelola akses login pengguna YT Manager.</p></div><button className="primary settings-action-button" onClick={() => { setUserModal({ mode: "add" }); setUserEmail(""); setUserName(""); }}><Plus size={16}/> Tambahkan</button></div>
+                <div className="settings-actions"><button className="secondary-action settings-action-button" onClick={loadAppUsers} disabled={usersLoading}><RefreshIcon size={15}/> {usersLoading ? "Memuat..." : "Muat Ulang"}</button></div>
+                {userMessage && <div className="settings-feedback">{userMessage}</div>}
+                {usersLoading ? <div className="empty-state">Memuat daftar pengguna...</div> : <div className="app-users-list">
+                  {appUsers.map((user) => { const blocked = Boolean(user.banned_until && new Date(user.banned_until) > new Date()); const pending = !user.email_confirmed_at; return <div className="app-user-row" key={user.id}>
+                    <div className="app-user-avatar"><Users size={17}/></div><div className="app-user-info"><strong>{user.display_name || user.email}</strong><span>{user.email}</span><small>{blocked ? "Diblokir" : pending ? "Menunggu konfirmasi email" : "Aktif"}</small></div>
+                    <div className="app-user-actions"><button className="secondary-action" title="Edit" onClick={() => { setUserModal({ mode: "edit", user }); setUserEmail(user.email || ""); setUserName(user.display_name || ""); }}><Pencil size={15}/></button><button className="secondary-action" title={blocked ? "Buka blokir" : "Blokir"} disabled={user.email?.toLowerCase() === "admin@ytmsewu.com"} onClick={() => toggleAppUserBlock(user)}><Ban size={15}/></button><button className="danger-action" title="Hapus" disabled={user.email?.toLowerCase() === "admin@ytmsewu.com"} onClick={() => deleteAppUser(user)}><Trash2 size={15}/></button></div>
+                  </div>; })}
+                  {!appUsers.length && <div className="empty-state">Belum ada pengguna lain.</div>}
+                </div>}
+                <div className="settings-safety-note">Akun admin utama tidak dapat diblokir atau dihapus dari menu ini. Pengguna baru menerima undangan melalui email.</div>
+              </section> : <div className="settings-safety-note">Pengelolaan pengguna hanya tersedia untuk admin.</div>}
+            </>}
           </div>
         ) : (
         <>
@@ -541,6 +623,14 @@ export default function App() {
         </>
         )}
       </main>
+      {userModal && <div className="modal-backdrop" onClick={() => !userSaving && setUserModal(null)}><form className="modal" onSubmit={saveAppUser} onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" type="button" onClick={() => setUserModal(null)} disabled={userSaving}><X size={18}/></button>
+        <h2>{userModal.mode === "edit" ? "Edit Pengguna" : "Tambahkan Pengguna"}</h2>
+        <p>{userModal.mode === "edit" ? "Perbarui nama atau email pengguna." : "Undangan login akan dikirim ke alamat email pengguna."}</p>
+        <label>Nama pengguna</label><input value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="Nama pengguna" />
+        <label>Email</label><input type="email" value={userEmail} onChange={(e) => setUserEmail(e.target.value)} placeholder="nama@email.com" required />
+        <button className="primary full" type="submit" disabled={userSaving}>{userSaving ? "Menyimpan..." : userModal.mode === "edit" ? "Simpan Perubahan" : "Kirim Undangan"}</button>
+      </form></div>}
       {showAdd && <div className="modal-backdrop" onClick={() => setShowAdd(false)}><form className="modal" onSubmit={addAccount} onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" type="button" onClick={() => setShowAdd(false)}><X size={18}/></button><h2>Tambah Akun YouTube</h2><p>{isDesktop ? "Data ini memberi label pada profil browser baru. Login Google dilakukan langsung di browser YouTube." : "Data akun disimpan di dashboard. Sesi browser YouTube terpisah dibuat melalui aplikasi Windows."}</p>
         <label>Nama akun</label><div className="auto-name-preview">Account {String(Math.max(accounts.reduce((highest, account) => { const match = String(account.display_name || "").match(/(\d+)\s*$/); return match ? Math.max(highest, Number(match[1])) : highest; }, 0), accounts.length) + 1).padStart(4, "0")}</div><small>Nomor akun dibuat otomatis dan berurutan.</small>
