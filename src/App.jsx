@@ -30,8 +30,10 @@ export default function App() {
   const [loginChecking, setLoginChecking] = useState(false);
   const [loginResults, setLoginResults] = useState({});
   const [address, setAddress] = useState("https://www.youtube.com");
-  const [targetChannelUrl, setTargetChannelUrl] = useState(() => window.localStorage.getItem("ytm-target-channel-url") || "");
+  const [targetChannelUrl, setTargetChannelUrl] = useState("");
   const [settingsMessage, setSettingsMessage] = useState("");
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
   const browserPaneRef = useRef(null);
 
   useEffect(() => {
@@ -50,6 +52,32 @@ export default function App() {
   }, [session, selected]);
 
   useEffect(() => { loadAccounts(); }, [loadAccounts]);
+
+  useEffect(() => {
+    let active = true;
+    async function loadUserSettings() {
+      if (!session?.user?.id || !supabase) {
+        setTargetChannelUrl("");
+        return;
+      }
+      setSettingsLoading(true);
+      const { data, error } = await supabase
+        .from("yt_user_settings")
+        .select("target_channel_url")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      if (!active) return;
+      if (error) {
+        console.error("Gagal memuat pengaturan channel:", error);
+        setSettingsMessage("Pengaturan channel gagal dimuat dari server.");
+      } else {
+        setTargetChannelUrl(data?.target_channel_url || "");
+      }
+      setSettingsLoading(false);
+    }
+    loadUserSettings();
+    return () => { active = false; };
+  }, [session?.user?.id]);
 
   useEffect(() => {
     if (page === "Dashboard" && selected && window.ytm) {
@@ -182,7 +210,7 @@ export default function App() {
 
   function navigate() { window.ytm?.navigateBrowser(address).catch((e) => alert(e.message)); }
 
-  function saveTargetChannel() {
+  async function saveTargetChannel() {
     const value = targetChannelUrl.trim();
     try {
       const parsed = new URL(value);
@@ -194,9 +222,24 @@ export default function App() {
       setSettingsMessage("URL channel belum valid. Gunakan tautan lengkap yang diawali https://.");
       return;
     }
-    window.localStorage.setItem("ytm-target-channel-url", value);
-    setTargetChannelUrl(value);
-    setSettingsMessage("Link channel tujuan tersimpan di perangkat ini.");
+    if (!supabase || !session?.user?.id) {
+      setSettingsMessage("Login diperlukan untuk menyimpan pengaturan ke database.");
+      return;
+    }
+    setSettingsSaving(true);
+    setSettingsMessage("");
+    const { error } = await supabase.from("yt_user_settings").upsert({
+      user_id: session.user.id,
+      target_channel_url: value,
+      updated_at: new Date().toISOString()
+    }, { onConflict: "user_id" });
+    setSettingsSaving(false);
+    if (error) {
+      console.error("Gagal menyimpan pengaturan channel:", error);
+      setSettingsMessage("Gagal menyimpan ke Supabase. Periksa koneksi lalu coba lagi.");
+      return;
+    }
+    setSettingsMessage("Link channel berhasil disimpan dan tersinkron melalui Supabase.");
   }
 
   function chooseRandomAccount() {
@@ -273,14 +316,14 @@ export default function App() {
         {page === "Pengaturan" ? (
           <div className="settings-view">
             <h2>Pengaturan Channel</h2>
-            <p className="settings-description">Atur channel tujuan untuk sesi riset. Link disimpan secara lokal pada perangkat ini.</p>
+            <p className="settings-description">Atur channel tujuan untuk sesi riset. Link disimpan di Supabase dan tersedia pada perangkat lain setelah login dengan akun yang sama.</p>
             <section className="settings-card channel-target-card">
               <div className="settings-card-content">
                 <strong>Link Channel Tujuan</strong>
                 <p>Masukkan URL channel YouTube yang ingin diperiksa.</p>
                 <input className="target-channel-input" type="url" value={targetChannelUrl} onChange={(e) => { setTargetChannelUrl(e.target.value); setSettingsMessage(""); }} placeholder="https://www.youtube.com/@nama-channel" />
                 <div className="settings-actions">
-                  <button className="primary settings-action-button" onClick={saveTargetChannel}>Simpan Link</button>
+                  <button className="primary settings-action-button" onClick={saveTargetChannel} disabled={settingsLoading || settingsSaving}>{settingsSaving ? "Menyimpan..." : settingsLoading ? "Memuat..." : "Simpan Link"}</button>
                   <button className="secondary-action settings-action-button" onClick={chooseRandomAccount} disabled={!accounts.length}>Pilih Akun Acak</button>
                   <button className="secondary-action settings-action-button" onClick={openTargetChannel} disabled={!selected || !targetChannelUrl.trim()}>Buka Channel Tujuan</button>
                 </div>
