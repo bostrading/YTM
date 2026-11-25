@@ -46,3 +46,37 @@
 @media(max-width:640px){.app-users-heading{align-items:flex-start}.app-users-heading>.primary{width:100%}.app-user-row{gap:8px;padding:9px}.app-user-actions{gap:4px}.app-user-actions button{width:30px;height:30px}}
 
 .progress-section{margin-top:18px;padding:14px 15px;border:1px solid #2b3b56;background:#101d31;border-radius:10px}.progress-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#aebdd2;font-size:12px}.progress-heading strong{color:#f1f6ff;font-size:13px;font-variant-numeric:tabular-nums}.progress-track{height:10px;margin-top:10px;border-radius:99px;background:#263650;overflow:hidden}.progress-fill{height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#1464ed,#24a0ff);transition:width .25s ease}.video-progress-fill{background:linear-gradient(90deg,#0ca678,#27d99b)}.progress-caption{margin-top:8px;color:#91a3bd;font-size:11px;line-height:1.5}
+
+
+/* Android / narrow-screen layout */
+@media(max-width:640px){
+  html,body,#root{width:100%;height:100%;min-height:100%;overflow:hidden}
+  .app-shell{width:100%;height:100dvh;min-height:0;overflow:hidden;grid-template-columns:minmax(0,1fr);grid-template-rows:62px 56px minmax(150px,27dvh) minmax(0,1fr);gap:1px}
+  .topbar{grid-column:1;grid-row:1;padding:0 12px;border-radius:0;min-width:0}
+  .brand{gap:9px}.brand-mark{width:38px;height:34px;border-radius:9px;font-size:19px}.brand strong{font-size:16px}.brand span{font-size:10px}
+  .system-status{margin:0 8px 0 auto;font-size:10px;gap:6px}.icon-button{padding:6px}
+  .sidebar{grid-column:1;grid-row:2;min-width:0;min-height:0;flex-direction:row;align-items:center;gap:8px;padding:5px 8px;border-radius:0;overflow-x:auto;overflow-y:hidden}
+  .sidebar nav{display:flex;gap:6px;min-width:max-content}
+  .nav-item{height:40px;width:auto;min-width:0;padding:0 11px;gap:7px;font-size:11px;white-space:nowrap}
+  .nav-item svg{width:15px;height:15px}.side-stats{display:none}
+  .logout-button{margin:0 0 0 auto;flex:0 0 auto;padding:8px;font-size:0;gap:0}.logout-button svg{width:18px;height:18px}
+  .account-panel{grid-column:1;grid-row:3;min-height:0;padding:10px 10px 8px;overflow:hidden}
+  .panel-heading{margin:0 0 8px}.panel-heading h2{font-size:14px}.count-pill{padding:5px 9px;font-size:10px}
+  .search-row{gap:6px;margin-bottom:8px}.search-box{height:34px}.filter-button{height:34px;width:34px}
+  .account-list{min-height:0;overflow:auto;flex:1}
+  .account-item{min-height:48px;padding:6px 8px;gap:7px}.avatar{width:30px;height:30px;flex:0 0 30px;font-size:11px}
+  .account-meta strong{font-size:11px}.account-meta span{font-size:9px}.login-status{font-size:9px}
+  .more-button{padding:4px}.add-account{height:34px;margin-top:7px;font-size:11px}.user-foot{display:none}
+  .browser-panel{grid-column:1;grid-row:4;min-height:0;overflow:hidden}
+  .settings-view{height:100%;min-height:0;overflow:auto;padding:16px 12px}
+  .settings-view h2{font-size:18px}.settings-description{font-size:11px;margin-bottom:14px}
+  .channel-target-card{padding:14px;border-radius:11px}.settings-card-content>strong{font-size:13px}
+  .target-channel-input{height:42px;font-size:12px}.settings-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .settings-action-button{width:100%;height:auto;min-height:38px;padding:8px 7px;font-size:10px;white-space:normal}
+  .settings-current-account{font-size:11px}.progress-section{padding:11px;margin-top:12px}
+  .browser-toolbar{min-height:42px;padding:5px 8px}.browser-title{font-size:11px}
+  .browser-viewport{min-height:0;overflow:auto}
+  .web-account-detail{padding:16px}.web-detail-heading{gap:10px;padding-bottom:14px}.web-detail-heading h2{font-size:17px}
+  .web-detail-grid{gap:8px;margin:12px 0}.web-detail-grid>div{padding:11px}
+  .app-user-row{flex-wrap:wrap}.app-user-actions{margin-left:auto}
+}
