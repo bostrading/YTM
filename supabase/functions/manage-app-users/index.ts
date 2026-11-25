@@ -51,6 +51,34 @@ Deno.serve(async (req: Request) => {
       return respond({ users });
     }
 
+    if (action === "list_accounts") {
+      const { data: accounts, error } = await admin
+        .from("yt_accounts")
+        .select("*")
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      const ownerIds = [...new Set((accounts || []).map((account) => account.user_id).filter(Boolean))];
+      const owners = await Promise.all(ownerIds.map(async (id) => {
+        const { data, error: ownerError } = await admin.auth.admin.getUserById(id);
+        if (ownerError) {
+          console.error("Gagal mengambil pemilik akun:", id, ownerError);
+          return [id, { email: "", display_name: "" }];
+        }
+        return [id, {
+          email: data.user?.email || "",
+          display_name: data.user?.user_metadata?.display_name || data.user?.user_metadata?.name || "",
+        }];
+      }));
+      const ownerMap = new Map(owners);
+      return respond({
+        accounts: (accounts || []).map((account) => ({
+          ...account,
+          owner_email: ownerMap.get(account.user_id)?.email || "",
+          owner_name: ownerMap.get(account.user_id)?.display_name || "",
+        })),
+      });
+    }
+
     const userId = String(body.user_id || "");
     if (action !== "invite") {
       if (!userId) return respond({ error: "ID pengguna wajib diisi." }, 400);
