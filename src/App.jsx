@@ -34,6 +34,9 @@ export default function App() {
   const [settingsMessage, setSettingsMessage] = useState("");
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [randomQueue, setRandomQueue] = useState([]);
+  const [queueIndex, setQueueIndex] = useState(-1);
+  const [queueMessage, setQueueMessage] = useState("");
   const browserPaneRef = useRef(null);
 
   useEffect(() => {
@@ -280,13 +283,55 @@ export default function App() {
     setSettingsMessage("Link channel berhasil disimpan dan tersinkron melalui Supabase.");
   }
 
-  function chooseRandomAccount() {
-    if (!accounts.length) { setSettingsMessage("Belum ada akun untuk dipilih."); return; }
-    const candidates = accounts.filter((account) => account.id !== selected?.id);
-    const pool = candidates.length ? candidates : accounts;
-    const account = pool[Math.floor(Math.random() * pool.length)];
+  function shuffleAccounts(items) {
+    const shuffled = [...items];
+    for (let i = shuffled.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
+  function startRandomRound() {
+    if (!accounts.length) {
+      setQueueMessage("Belum ada akun untuk memulai putaran.");
+      return;
+    }
+    const queue = shuffleAccounts(accounts.map((account) => account.id));
+    setRandomQueue(queue);
+    setQueueIndex(0);
+    const firstAccount = accounts.find((account) => account.id === queue[0]);
+    setSelected(firstAccount);
+    setQueueMessage(`Putaran dimulai: ${queue.length} akun diacak. Giliran 1 dari ${queue.length}: ${firstAccount.display_name}.`);
+  }
+
+  async function chooseNextRandomAccount() {
+    if (!randomQueue.length || queueIndex < 0) {
+      setQueueMessage("Mulai putaran acak terlebih dahulu.");
+      return;
+    }
+    const nextIndex = queueIndex + 1;
+    if (nextIndex >= randomQueue.length) {
+      setQueueMessage("Putaran selesai. Semua akun sudah mendapat satu giliran. Mulai putaran baru untuk mengacak ulang.");
+      setQueueIndex(randomQueue.length);
+      return;
+    }
+    const account = accounts.find((item) => item.id === randomQueue[nextIndex]);
+    if (!account) {
+      setQueueMessage("Daftar akun berubah. Mulai putaran baru agar antrean diperbarui.");
+      return;
+    }
+    setQueueIndex(nextIndex);
     setSelected(account);
-    setSettingsMessage(`Akun terpilih: ${account.display_name}. Buka channel tujuan secara manual jika sudah siap.`);
+    setQueueMessage(`Giliran ${nextIndex + 1} dari ${randomQueue.length}: ${account.display_name}. Buka channel tujuan secara manual jika siap.`);
+    if (supabase && session?.user) {
+      await supabase.from("yt_activity_logs").insert({
+        user_id: session.user.id,
+        account_id: account.id,
+        event_type: "random_account_turn",
+        description: `Giliran acak ${nextIndex + 1} dari ${randomQueue.length}`
+      });
+    }
   }
 
   async function openTargetChannel() {
@@ -362,11 +407,14 @@ export default function App() {
                 <input className="target-channel-input" type="url" value={targetChannelUrl} onChange={(e) => { setTargetChannelUrl(e.target.value); setSettingsMessage(""); }} placeholder="https://www.youtube.com/@nama-channel" />
                 <div className="settings-actions">
                   <button className="primary settings-action-button" onClick={saveTargetChannel} disabled={settingsLoading || settingsSaving}>{settingsSaving ? "Menyimpan..." : settingsLoading ? "Memuat..." : "Simpan Link"}</button>
-                  <button className="secondary-action settings-action-button" onClick={chooseRandomAccount} disabled={!accounts.length}>Pilih Akun Acak</button>
+                  <button className="secondary-action settings-action-button" onClick={startRandomRound} disabled={!accounts.length}>Mulai Putaran Acak</button>
+                  <button className="secondary-action settings-action-button" onClick={chooseNextRandomAccount} disabled={!randomQueue.length || queueIndex >= randomQueue.length}>Akun Berikutnya</button>
                   <button className="secondary-action settings-action-button" onClick={openTargetChannel} disabled={!selected || !targetChannelUrl.trim()}>Buka Channel Tujuan</button>
                 </div>
                 {settingsMessage && <div className="settings-feedback">{settingsMessage}</div>}
+                {queueMessage && <div className="settings-feedback">{queueMessage}</div>}
                 <div className="settings-current-account">Akun terpilih: <strong>{selected?.display_name || "Belum ada akun"}</strong></div>
+                <div className="settings-current-account">Progres putaran: <strong>{queueIndex < 0 ? "Belum dimulai" : `${Math.min(queueIndex + 1, randomQueue.length)} / ${randomQueue.length} akun`}</strong></div>
               </div>
             </section>
             <div className="settings-safety-note">Sesi riset dijalankan secara manual. YT Manager tidak menjalankan tontonan, Subscribe, atau interaksi massal secara otomatis.</div>
