@@ -87,12 +87,12 @@ jobs:
                       proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
                   }
               """
-              app_content = app_content.replace("buildTypes {", "buildTypes {\\n                  " + shrink, 1)
+              app_content = app_content.replace("buildTypes {", "buildTypes {" + chr(10) + "                  " + shrink, 1)
               app_gradle.write_text(app_content)
           proguard = Path("android/app/proguard-rules.pro")
           proguard.write_text(proguard.read_text() if proguard.exists() else "")
           with proguard.open("a") as rules:
-              rules.write("\\n-keep class com.bostrading.ytmanager.MainActivity { *; }\\n-keep class com.bostrading.ytmanager.YtmBrowserPlugin { *; }\\n-keep class com.bostrading.ytmanager.YtmBrowserActivity { *; }\\n-keepattributes *Annotation*\\n")
+              rules.write(chr(10) + "-keep class com.bostrading.ytmanager.MainActivity { *; }" + chr(10) + "-keep class com.bostrading.ytmanager.YtmBrowserPlugin { *; }" + chr(10) + "-keep class com.bostrading.ytmanager.YtmBrowserActivity { *; }" + chr(10) + "-keepattributes *Annotation*" + chr(10))
           PY
       - name: Restore stable Android signing key
         uses: actions/cache@v4
