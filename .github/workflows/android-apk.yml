@@ -62,9 +62,6 @@ jobs:
           from pathlib import Path
           gradle = Path("android/app/build.gradle")
           content = gradle.read_text()
-          if "androidx.webkit:webkit" not in content:
-              content = content.replace("dependencies {", "dependencies {" + chr(10) + '    implementation "androidx.webkit:webkit:1.9.0"', 1)
-              gradle.write_text(content)
           manifest = Path("android/app/src/main/AndroidManifest.xml")
           content = manifest.read_text()
           activity = '''
