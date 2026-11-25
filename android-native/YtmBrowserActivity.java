@@ -14,6 +14,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.graphics.Typeface;
 import androidx.webkit.Profile;
@@ -30,6 +31,7 @@ public class YtmBrowserActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         String rawProfileId = getIntent().getStringExtra("profileId");
+        String accountName = getIntent().getStringExtra("accountName");
         if (rawProfileId == null || rawProfileId.trim().isEmpty()) {
             Toast.makeText(this, "Profil akun tidak ditemukan. Browser tidak dibuka.", Toast.LENGTH_LONG).show();
             finish();
@@ -42,13 +44,13 @@ public class YtmBrowserActivity extends Activity {
         }
         getWindow().setStatusBarColor(Color.rgb(18, 24, 38));
         getWindow().setNavigationBarColor(Color.BLACK);
-        buildBrowser(rawProfileId);
+        buildBrowser(rawProfileId, accountName == null ? "Akun YouTube" : accountName);
         String initialUrl = getIntent().getStringExtra("url");
         if (initialUrl == null || initialUrl.isEmpty()) initialUrl = "https://www.youtube.com";
         loadAddress(initialUrl);
     }
 
-    private void buildBrowser(String rawProfileId) {
+    private void buildBrowser(String rawProfileId, String accountName) {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.WHITE);
@@ -93,12 +95,29 @@ public class YtmBrowserActivity extends Activity {
         progress.setMax(100);
         progress.setVisibility(View.GONE);
         root.addView(toolbar);
+        root.addView(profileLabel);
         root.addView(progress, new LinearLayout.LayoutParams(-1, dp(3)));
 
         webView = new WebView(this);
         String profileName = "account_" + rawProfileId.replaceAll("[^A-Za-z0-9_-]", "_");
         Profile profile = ProfileStore.getInstance().getOrCreateProfile(profileName);
         WebViewCompat.setProfile(webView, profileName);
+        Profile appliedProfile = WebViewCompat.getProfile(webView);
+        if (appliedProfile == null || !profileName.equals(appliedProfile.getName())) {
+            Toast.makeText(this, "Profil browser gagal dipisahkan untuk " + accountName, Toast.LENGTH_LONG).show();
+            webView.destroy();
+            finish();
+            return;
+        }
+
+        TextView profileLabel = new TextView(this);
+        profileLabel.setText("PROFIL AKTIF  •  " + accountName);
+        profileLabel.setTextColor(Color.rgb(232, 198, 110));
+        profileLabel.setTextSize(11);
+        profileLabel.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        profileLabel.setPadding(dp(14), dp(5), dp(14), dp(5));
+        profileLabel.setBackgroundColor(Color.rgb(28, 25, 19));
+
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
