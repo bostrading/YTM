@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640">
+<defs>
+ <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff2a6"/><stop offset=".3" stop-color="#f6c54c"/><stop offset=".65" stop-color="#a9650b"/><stop offset="1" stop-color="#ffe58a"/></linearGradient>
+ <linearGradient id="silver" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#8792a3"/></linearGradient>
+</defs>
+<rect width="960" height="640" rx="48" fill="#080a0e"/>
+<g transform="translate(224 18) scale(1.0)"><rect x="10" y="10" width="492" height="492" rx="104" fill="#11151c" stroke="url(#gold)" stroke-width="8"/><path d="M140 190 L170 128 L223 166 L256 96 L289 166 L342 128 L372 190 L350 211 L162 211Z" fill="url(#gold)"/><path d="M153 214 H359 L345 237 H167Z" fill="url(#gold)"/><path d="M150 300 L205 245 L205 385 L150 385Z" fill="url(#gold)"/><path d="M220 375 L220 245 L272 245 L272 325 L357 245 L415 245 L306 352 L421 385 L330 385 L272 367 L272 385Z" fill="url(#silver)"/><path d="M254 275 L254 334 L306 304Z" fill="#e51b2b" stroke="#ffd5c8" stroke-width="5"/></g>
+<text x="480" y="600" text-anchor="middle" font-family="Arial,sans-serif" font-size="84" font-weight="800" letter-spacing="2" fill="url(#silver)">KUBANG <tspan fill="#ed1c2e">YT</tspan></text>
+</svg>
