@@ -10,6 +10,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://ciwghxpgvkdssz
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_8o52lNy0iHby8vSIq-i1EA_Ef1y_k43";
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 const isDesktop = typeof window !== "undefined" && Boolean(window.ytm);
+const isAndroidApp = typeof window !== "undefined" && window.Capacitor?.getPlatform?.() === "android";
 
 function initials(name = "YT") {
   return name.trim().split(/\s+/).slice(0, 2).map((v) => v[0]?.toUpperCase()).join("") || "YT";
@@ -687,7 +688,7 @@ export default function App() {
         <>
         <div className="browser-toolbar">
           <div className="browser-title"><Globe size={18}/>{isDesktop ? "Browser" : "Web Dashboard"}</div>
-          {isDesktop ? <><button className="browser-control" onClick={() => window.ytm.browserBack()}><ArrowLeft size={18}/></button><button className="browser-control" onClick={() => window.ytm.browserForward()}><ArrowRight size={18}/></button><button className="browser-control" onClick={() => window.ytm.browserReload()}><RefreshCw size={18}/></button><form className="address-bar" onSubmit={(e) => { e.preventDefault(); navigate(); }}><span>🔒</span><input value={address} onChange={(e) => setAddress(e.target.value)} /></form><div className="active-session"><i/>{selected ? `Sesi: ${selected.display_name}` : "Belum ada sesi"}</div><button className="browser-control login-test-button" disabled={!selected || loginChecking || browserState.loading} onClick={testProfileLogin} title="Uji status login YouTube">{loginChecking ? "Menguji..." : "Uji Login"}</button></> : <div className="active-session">Mode web · login YouTube hanya di aplikasi Windows</div>}
+          {isDesktop ? <><button className="browser-control" onClick={() => window.ytm.browserBack()}><ArrowLeft size={18}/></button><button className="browser-control" onClick={() => window.ytm.browserForward()}><ArrowRight size={18}/></button><button className="browser-control" onClick={() => window.ytm.browserReload()}><RefreshCw size={18}/></button><form className="address-bar" onSubmit={(e) => { e.preventDefault(); navigate(); }}><span>🔒</span><input value={address} onChange={(e) => setAddress(e.target.value)} /></form><div className="active-session"><i/>{selected ? `Sesi: ${selected.display_name}` : "Belum ada sesi"}</div><button className="browser-control login-test-button" disabled={!selected || loginChecking || browserState.loading} onClick={testProfileLogin} title="Uji status login YouTube">{loginChecking ? "Menguji..." : "Uji Login"}</button></> : <div className="active-session">{isAndroidApp ? "Mode Android · dashboard tersinkron" : "Mode web · login YouTube hanya di aplikasi Windows"}</div>}
         </div>
         <div className="browser-viewport" ref={browserPaneRef}>
           {!isDesktop ? (
@@ -704,7 +705,7 @@ export default function App() {
                   </div>
                   <div className="web-browser-notice">
                     <Globe size={20}/>
-                    <div><strong>Browser YouTube tidak tersedia di website</strong><p>Pemilihan akun berhasil. Untuk membuka YouTube dan login menggunakan sesi profil ini, jalankan aplikasi YT Manager di Windows lalu pilih akun yang sama.</p></div>
+                    <div><strong>{isAndroidApp ? "Browser akun YouTube belum tersedia di APK" : "Browser YouTube tidak tersedia di website"}</strong><p>{isAndroidApp ? "Dashboard, daftar akun, pengaturan, dan sinkronisasi tersedia. Browser YouTube dengan sesi terpisah per akun serta deteksi progres video belum didukung pada APK ini; gunakan aplikasi Windows untuk fitur tersebut." : "Pemilihan akun berhasil. Untuk membuka YouTube dan login menggunakan sesi profil ini, jalankan aplikasi YT Manager di Windows lalu pilih akun yang sama."}</p></div>
                   </div>
                 </>
               ) : (
