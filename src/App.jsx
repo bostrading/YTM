@@ -524,7 +524,7 @@ export default function App() {
                     <div><span className="web-detail-eyebrow">AKUN TERPILIH</span><h2>{selected.display_name}</h2><p>{selected.email || "Email belum diisi"}</p></div>
                   </div>
                   <div className="web-detail-grid">
-                    <div><span>Status terakhir</span><strong>{selected.account_status === "logged_in" ? "Login terverifikasi" : selected.account_status === "logged_out" ? "Logout" : "Belum diuji"}</strong></div>
+                    <div><span>Status terakhir</span><strong>{selected.account_status === "logged_in" ? "Aktif" : selected.account_status === "logged_out" ? "Logout" : "Belum diuji"}</strong></div>
                     <div><span>Ditambahkan</span><strong>{selected.created_at ? new Date(selected.created_at).toLocaleString("id-ID") : "—"}</strong></div>
                   </div>
                   <div className="web-browser-notice">
