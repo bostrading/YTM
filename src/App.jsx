@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { registerPlugin } from "@capacitor/core";
+
+const YtmBrowser = registerPlugin("YtmBrowser");
 import {
   ArrowLeft, ArrowRight, Bell, CheckCircle2, ChevronDown, CircleHelp,
   Filter, Globe, Home, LogOut, Menu, Plus, RefreshCw, Search, Settings,
@@ -351,6 +354,11 @@ export default function App() {
 
   function navigate() { window.ytm?.navigateBrowser(address).catch((e) => alert(e.message)); }
 
+  async function openAndroidHome() {
+    try { await YtmBrowser.open({ url: "https://www.youtube.com" }); }
+    catch (error) { alert(error.message || "Browser Android gagal dibuka."); }
+  }
+
   async function saveTargetChannel() {
     const value = targetChannelUrl.trim();
     try {
@@ -438,9 +446,10 @@ export default function App() {
     if (activeTask && activeTask !== "subscribe") { setSettingsMessage("Selesaikan tugas Jam Tayang terlebih dahulu."); return; }
     if (!targetChannelUrl.trim()) { setSettingsMessage("Simpan link channel tujuan terlebih dahulu."); return; }
     if (!selected) { setSettingsMessage("Pilih akun terlebih dahulu."); return; }
-    if (!isDesktop) { setSettingsMessage("Buka channel tujuan melalui aplikasi YT Manager Windows."); return; }
+    if (!isDesktop && !isAndroidApp) { setSettingsMessage("Buka channel tujuan melalui aplikasi YT Manager."); return; }
     try {
-      await window.ytm.openAccountBrowser(selected.browser_profile_id, targetChannelUrl.trim());
+      if (isAndroidApp) await YtmBrowser.open({ url: targetChannelUrl.trim() });
+      else await window.ytm.openAccountBrowser(selected.browser_profile_id, targetChannelUrl.trim());
       await supabase?.from("yt_activity_logs").insert({
         user_id: session.user.id, account_id: selected.id,
         event_type: "channel_research_opened",
@@ -537,8 +546,21 @@ export default function App() {
     }
     if (!targetVideoUrl.trim()) { setVideoTaskMessage("Simpan link video terlebih dahulu."); return; }
     if (!selected) { setVideoTaskMessage("Pilih akun terlebih dahulu."); return; }
-    if (!isDesktop) { setVideoTaskMessage("Buka video melalui aplikasi YT Manager Windows."); return; }
+    if (!isDesktop && !isAndroidApp) { setVideoTaskMessage("Buka video melalui aplikasi YT Manager."); return; }
     try {
+      if (isAndroidApp) {
+        await YtmBrowser.open({ url: targetVideoUrl.trim() });
+        setActiveTask("watch");
+        setVideoTaskStatus("opened");
+        setVideoProgress({ currentTime: 0, duration: 0, percent: null, paused: true, ended: false, available: false });
+        setVideoTaskMessage("Video dibuka di browser Android. Deteksi progres otomatis belum tersedia di APK; setelah selesai, kembali ke aplikasi dan tekan Selesaikan Sesi.");
+        await supabase.from("yt_activity_logs").insert({
+          user_id: session.user.id, account_id: selected.id,
+          event_type: "watch_video_opened",
+          description: "Video dibuka manual melalui browser WebView Android: " + targetVideoUrl.trim()
+        });
+        return;
+      }
       await window.ytm.openAccountBrowser(selected.browser_profile_id, targetVideoUrl.trim());
       setAddress(targetVideoUrl.trim());
       setActiveTask("watch");
@@ -652,6 +674,7 @@ export default function App() {
                   <button className="secondary-action settings-action-button" onClick={chooseNextVideoRandomAccount} disabled={!videoRandomQueue.length || videoQueueIndex >= videoRandomQueue.length || activeTask === "subscribe" || activeTask === "watch"}>Akun Berikutnya</button>
                   <button className="secondary-action settings-action-button" onClick={saveTargetVideo}>Simpan Link Video</button>
                   <button className="secondary-action settings-action-button" onClick={openTargetVideo} disabled={!selected || !targetVideoUrl.trim() || activeTask === "subscribe"}>Buka Video</button>
+                  {activeTask === "watch" && <button className="secondary-action settings-action-button" onClick={() => completeManualTask("watch")}>Selesaikan Sesi</button>}
                 </div>
                 {videoTaskMessage && <div className="settings-feedback">{videoTaskMessage}</div>}
                 <div className="settings-current-account">Akun yang digunakan: <strong>{selected?.display_name || "Belum ada akun"}</strong></div>
@@ -706,7 +729,7 @@ export default function App() {
                   </div>
                   <div className="web-browser-notice">
                     <Globe size={20}/>
-                    <div><strong>{isAndroidApp ? "Browser akun YouTube belum tersedia di APK" : "Browser YouTube tidak tersedia di website"}</strong><p>{isAndroidApp ? "Dashboard, daftar akun, pengaturan, dan sinkronisasi tersedia. Browser YouTube dengan sesi terpisah per akun serta deteksi progres video belum didukung pada APK ini; gunakan aplikasi Windows untuk fitur tersebut." : "Pemilihan akun berhasil. Untuk membuka YouTube dan login menggunakan sesi profil ini, jalankan aplikasi YT Manager di Windows lalu pilih akun yang sama."}</p></div>
+                    <div><strong>{isAndroidApp ? "Browser YouTube Android" : "Browser YouTube tidak tersedia di website"}</strong><p>{isAndroidApp ? "Browser internal tersedia di APK. Catatan: sesi login WebView masih digunakan bersama, belum terpisah untuk setiap akun." : "Pemilihan akun berhasil. Untuk membuka YouTube dan login menggunakan sesi profil ini, jalankan aplikasi YT Manager di Windows lalu pilih akun yang sama."}</p>{isAndroidApp && <button className="primary settings-action-button" onClick={openAndroidHome}>Buka Browser YouTube</button>}</div>
                   </div>
                 </>
               ) : (
