@@ -46,6 +46,7 @@ export default function App() {
   const [randomQueue, setRandomQueue] = useState([]);
   const [queueIndex, setQueueIndex] = useState(-1);
   const [queueMessage, setQueueMessage] = useState("");
+  const [completedSubscribeAccounts, setCompletedSubscribeAccounts] = useState([]);
   const [videoRandomQueue, setVideoRandomQueue] = useState([]);
   const [videoQueueIndex, setVideoQueueIndex] = useState(-1);
   const isAdmin = session?.user?.email?.toLowerCase() === "admin@ytmsewu.com";
@@ -451,6 +452,7 @@ export default function App() {
     const queue = shuffleAccounts(accounts.map((account) => account.id));
     setRandomQueue(queue);
     setQueueIndex(0);
+    setCompletedSubscribeAccounts([]);
     const firstAccount = accounts.find((account) => account.id === queue[0]);
     setSelected(firstAccount);
     setQueueMessage(`Putaran dimulai: ${queue.length} akun diacak. Giliran 1 dari ${queue.length}: ${firstAccount.display_name}.`);
@@ -636,7 +638,16 @@ export default function App() {
         description: "Pengguna menandai pemantauan video selesai secara manual."
       });
     } else {
-      setSettingsMessage("Sesi Subscribe ditutup.");
+      const completedAccountId = selected?.id;
+      if (completedAccountId) {
+        setCompletedSubscribeAccounts((previous) => previous.includes(completedAccountId) ? previous : [...previous, completedAccountId]);
+        await supabase?.from("yt_activity_logs").insert({
+          user_id: session.user.id, account_id: completedAccountId,
+          event_type: "subscribe_session_completed",
+          description: "Pengguna mengonfirmasi sesi Subscribe selesai secara manual."
+        });
+      }
+      setSettingsMessage("Sesi Subscribe ditutup dan giliran akun ini dihitung selesai.");
     }
     setActiveTask(null);
   }
@@ -718,7 +729,11 @@ export default function App() {
                 {settingsMessage && <div className="settings-feedback">{settingsMessage}</div>}
                 {queueMessage && <div className="settings-feedback">{queueMessage}</div>}
                 <div className="settings-current-account">Akun terpilih: <strong>{selected?.display_name || "Belum ada akun"}</strong></div>
-                <div className="settings-current-account">Progres putaran akun: <strong>{queueIndex < 0 ? "Belum dimulai" : `${Math.min(queueIndex + 1, randomQueue.length)} / ${randomQueue.length}`}</strong></div>
+                <div className="progress-section">
+                  <div className="progress-heading"><span>Progres putaran akun</span><strong>{randomQueue.length ? `${Math.round((completedSubscribeAccounts.filter((id) => randomQueue.includes(id)).length / randomQueue.length) * 100)}%` : "0%"}</strong></div>
+                  <div className="progress-track"><div className="progress-fill" style={{ width: `${randomQueue.length ? (completedSubscribeAccounts.filter((id) => randomQueue.includes(id)).length / randomQueue.length) * 100 : 0}%` }} /></div>
+                  <div className="progress-caption">{randomQueue.length ? `${completedSubscribeAccounts.filter((id) => randomQueue.includes(id)).length} dari ${randomQueue.length} akun selesai dikonfirmasi manual` : "Belum dimulai"}</div>
+                </div>
                 {activeTask === "watch" && <div className="settings-feedback">Jam Tayang sedang aktif. Selesaikan sesi tersebut sebelum memulai Subscribe.</div>}
               </div></section>
             </> : page === "Jam Tayang" ? <>
