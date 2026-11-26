@@ -322,12 +322,15 @@ export default function App() {
     setLoginChecking(true);
     try {
       const result = await window.ytm.checkYoutubeLogin(selected.browser_profile_id);
-      const status = result.signedIn ? "logged_in" : "logged_out";
+      const status = result.signedIn ? "unknown" : "logged_out";
       setLoginResults((prev) => ({ ...prev, [selected.id]: { status, accountLabel: result.accountLabel || "", checkedAt: result.checkedAt } }));
-      const { error } = await supabase.from("yt_accounts").update({ account_status: status }).eq("id", selected.id);
-      if (error) throw error;
-      setAccounts((prev) => prev.map((a) => a.id === selected.id ? { ...a, account_status: status } : a));
-      await supabase.from("yt_activity_logs").insert({ user_id: session.user.id, account_id: selected.id, event_type: "login_test", description: result.signedIn ? `Login YouTube terverifikasi${result.accountLabel ? `: ${result.accountLabel}` : ""}` : "Belum login ke YouTube" });
+      if (!result.signedIn) {
+        const { error } = await supabase.from("yt_accounts").update({ account_status: "logged_out", updated_at: new Date().toISOString() }).eq("id", selected.id);
+        if (error) throw error;
+        setAccounts((prev) => prev.map((a) => a.id === selected.id ? { ...a, account_status: "logged_out" } : a));
+      }
+      await supabase.from("yt_activity_logs").insert({ user_id: session.user.id, account_id: selected.id, event_type: "login_test", description: result.signedIn ? "YouTube mendeteksi sesi login; kecocokan email perlu dikonfirmasi manual." : "YouTube tidak mendeteksi sesi login." });
+      if (result.signedIn) alert("Sesi YouTube terdeteksi. Cocokkan email pada foto profil dengan email akun di menu Akun, lalu tekan Konfirmasi Email YouTube Cocok.");
     } catch (error) {
       alert(error.message || "Pemeriksaan login gagal.");
     } finally { setLoginChecking(false); }
@@ -381,6 +384,10 @@ export default function App() {
     if (!confirm(`Hapus data akun ${account.display_name}? Sesi browser lokal tidak otomatis dihapus.`)) return;
     const { error } = await supabase.from("yt_accounts").delete().eq("id", account.id);
     if (error) { alert(error.message); return; }
+    if (isDesktop && account.browser_profile_id) {
+      try { await window.ytm.deleteAccountProfile(account.browser_profile_id); }
+      catch (profileError) { console.error("Gagal membersihkan sesi browser akun:", profileError); alert("Data akun terhapus, tetapi sesi browser lokal gagal dibersihkan: " + (profileError.message || "kesalahan tidak diketahui")); }
+    }
     setAccounts((prev) => prev.filter((a) => a.id !== account.id));
     if (selected?.id === account.id) { setSelected(null); window.ytm?.hideBrowser(); }
   }
@@ -690,6 +697,8 @@ export default function App() {
                 <div className="settings-current-account">Data dibuat: <strong>{selected.created_at ? new Date(selected.created_at).toLocaleString("id-ID") : "—"}</strong></div>
                 <div className="settings-safety-note">Untuk verifikasi: buka YouTube, ketuk foto profil, lalu cocokkan email yang tampil dengan email terdaftar di atas. Jangan masukkan password Google ke Kubang YT.</div>
                 {isAndroidApp && <button className="primary settings-action-button" onClick={openAndroidHome}>Buka YouTube untuk akun ini</button>}
+                {isDesktop && <button className="primary settings-action-button" onClick={() => setPage("Dashboard")}>Buka Browser Akun Ini</button>}
+                {isDesktop && <button className="secondary-action settings-action-button" onClick={testProfileLogin} disabled={loginChecking}>{loginChecking ? "Memeriksa..." : "Uji Sesi YouTube"}</button>}
                 <button className="secondary-action settings-action-button" onClick={confirmYoutubeAccount}>Konfirmasi Email YouTube Cocok</button>
               </div></section> : <div className="settings-safety-note">Pilih akun dari panel kiri atau tambahkan akun baru.</div>}
               <div className="settings-safety-note">Catatan sesi: data akun dan email tersimpan di server. Sesi login YouTube adalah data browser lokal; jangan hapus data aplikasi jika ingin mempertahankan sesi. Isolasi profil WebView penuh tidak tersedia pada Android 7.</div>
