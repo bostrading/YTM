@@ -138,6 +138,22 @@ ipcMain.handle("browser:open-account", async (_event, { profileId, url }) => {
   return { ok: true, profileId };
 });
 
+ipcMain.handle("browser:delete-profile", async (_event, profileId) => {
+  validateProfileId(profileId);
+  if (browserView && activeProfileId === profileId) {
+    stopVideoProgressMonitor();
+    mainWindow?.contentView.removeChildView(browserView);
+    if (!browserView.webContents.isDestroyed()) browserView.webContents.close();
+    browserView = null;
+    activeProfileId = null;
+  }
+  const accountSession = session.fromPartition(`persist:ytm-${profileId}`);
+  await accountSession.clearStorageData();
+  await accountSession.clearCache();
+  await accountSession.clearAuthCache();
+  return { ok: true, profileId };
+});
+
 ipcMain.handle("browser:navigate", async (_event, rawUrl) => {
   if (!browserView || browserView.webContents.isDestroyed()) throw new Error("Browser belum dibuka.");
   await browserView.webContents.loadURL(normalizeUrl(rawUrl));
