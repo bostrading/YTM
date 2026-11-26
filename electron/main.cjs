@@ -68,7 +68,7 @@ function attachBrowserEvents(view, profileId) {
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1600, height: 920, minWidth: 1100, minHeight: 680,
-    backgroundColor: "#0b1220", title: "Kubang YT", autoHideMenuBar: true,
+    backgroundColor: "#0b1220", title: "Kubang YT", icon: path.join(__dirname, "../build/brand/kubang-yt.png"), autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true, nodeIntegration: false, sandbox: true
