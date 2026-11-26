@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import packageInfo from "../package.json";
+import brandIcon from "../public/kubang-yt-icon.svg";
 import { registerPlugin } from "@capacitor/core";
 
 const YtmBrowser = registerPlugin("YtmBrowser");
@@ -656,7 +657,7 @@ export default function App() {
   if (!session) return (
     <div className="auth-screen">
       <form className="auth-card" onSubmit={authenticate}>
-        <img className="brand-logo" src="./kubang-yt-icon.svg" alt="Kubang YT" /><h1>Kubang YT</h1>
+        <img className="brand-logo" src={brandIcon} alt="Kubang YT" /><h1>Kubang YT</h1>
         <p>Multi Account Dashboard</p>
         {!supabase && <div className="notice">Isi VITE_SUPABASE_URL dan VITE_SUPABASE_PUBLISHABLE_KEY pada .env terlebih dahulu.</div>}
         <label>Email</label><input type="email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} required />
