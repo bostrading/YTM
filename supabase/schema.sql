@@ -32,6 +32,8 @@ alter table public.yt_accounts enable row level security;
 alter table public.yt_activity_logs enable row level security;
 revoke all on table public.yt_accounts from anon, authenticated;
 revoke all on table public.yt_activity_logs from anon, authenticated;
+-- The admin Edge Function reads all accounts with the service-role client.
+grant select on table public.yt_accounts to service_role;
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on table public.yt_accounts to authenticated;
 grant select, insert, update, delete on table public.yt_activity_logs to authenticated;
